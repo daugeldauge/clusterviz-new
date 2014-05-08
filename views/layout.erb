@@ -8,7 +8,10 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="/favicon.ico">
 
-    <title>CLUSTER VIZ</title>
+    <title>Cluster Viz
+    <% title = yield_content :title %>
+    <%= ' | ' + title if not title.empty? %>
+    </title>
 
     <!-- Bootstrap core CSS -->
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -38,9 +41,9 @@
         </div>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li <%= 'class="active"' if title.empty?      %>><a href="/">Home</a></li>
+            <li <%= 'class="active"' if title == 'About'  %>><a href="/about">About</a></li>
+            <li <%= 'class="active"' if title == 'Contact'%>><a href="/contact">Contact</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>

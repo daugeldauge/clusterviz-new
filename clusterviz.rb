@@ -1,4 +1,5 @@
 require 'sinatra'
+require 'sinatra/contrib'
 
 configure do
   raise "Compilation error" unless system 'make -C src/'
@@ -73,6 +74,14 @@ get '/continue' do
   else 
     error_page 'Could not retrieve edge types from .dot file.'
   end
+end
+
+get '/about' do
+  erb :about
+end
+
+get '/contact' do
+  erb :contact
 end
 
 not_found do
