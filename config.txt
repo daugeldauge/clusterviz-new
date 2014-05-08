@@ -1,0 +1,9 @@
+contain 	0 gray16
+chill       0 cyan 
+power       0 red  
+ib          0 blue 
+eth         0 gold 
+serv_eth    0 gold3
+panasas_eth 0 gold4
+ctrl_eth    0 goldenrod
+include     0 green

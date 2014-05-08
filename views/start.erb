@@ -1,0 +1,46 @@
+<script type="text/javascript">
+function updateForm() {
+  if (document.getElementById("custom").checked) {
+    document.form.customURL.disabled = false;
+    document.form.update.disabled = true;
+  } else {
+    document.form.customURL.disabled = true;
+    document.form.customURL.value = "";
+    document.form.update.disabled = false;
+  }
+}
+</script>
+<div class='container center jumbotron'>
+  <h1> Welcome! </h1>
+  <form name="form" class="form-horizontal" action='continue' >
+    <div class="control-group">
+      <div class="btn-group btns" data-toggle="buttons" >
+          <label class="btn btn-default">
+              <input type="radio" name="cluster" value="lom" onchange="updateForm();">Lomonosov
+          </label>
+          <label class="btn btn-default active">
+              <input type="radio" name="cluster" value="cheb" onchange="updateForm();" checked>Chebyshev
+          </label>
+          <label class="btn btn-default">
+              <input type="radio" name="cluster" value="lab" onchange="updateForm();">Laboratory
+          </label>
+          <label class="btn btn-default">
+              <input id="custom" type="radio" name="cluster" value="custom" onchange="updateForm();">Custom
+          </label>
+      </div>
+    </div>
+    <div class="control-group custom-text-input">
+      <input type="text" placeholder="Paste custom URL" class="form-control" name="customURL" disabled>
+    </div>
+    <div class="control-group">
+      <div class="checkbox-custom">
+        <label>
+          <input type="checkbox" name="update"> Update .dot file
+        </label>
+      </div>
+    </div>
+    <div class="form-actions continue">
+      <button type="submit" class="btn btn-primary">Continue</button>
+    </div>
+  </form>
+</div>
