@@ -274,7 +274,7 @@ void Model::getRoots(set<Agnode_t *> &roots)
 
 void Model::pickLevels(int from, int to)
 {
-    for (int i = 0; i < static_cast<int>(levels.size()); ++i) {
+    for (int i = static_cast<int>(levels.size()) - 1; i >= 0; --i) {
         if (i < from || i > to) {
             for (auto node = levels[i].begin(); node != levels[i].end(); ++node) {
                 agdelnode(g, *node);
