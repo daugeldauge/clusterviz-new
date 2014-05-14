@@ -34,7 +34,6 @@ body {
 }
 
 .checkbox-custom {
-  display:block;
   min-height:20px;
   margin-top:10px;
   margin-bottom:10px;
@@ -59,7 +58,9 @@ body {
 	padding: 0 15px;
 }
 
-
+#dot-info {
+  margin-bottom: 0px;
+}
 
 #logo {
   float: left;

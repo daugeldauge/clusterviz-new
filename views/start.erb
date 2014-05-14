@@ -1,14 +1,35 @@
 <script type="text/javascript">
-function updateForm() {
-  if (document.getElementById("custom").checked) {
-    document.form.customURL.disabled = false;
-    document.form.update.disabled = true;
+// function updateForm() {
+//   if (document.getElementById("custom").checked) {
+//     document.form.customURL.disabled = false;
+//     document.form.update.disabled = true;
+//   } else {
+//     document.form.customURL.disabled = true;
+//     document.form.customURL.value = "";
+//     document.form.update.disabled = false;
+//   }
+// }
+
+function handle() {
+  var value = $(":input[name=cluster]:checked").prop("value");
+  if (value == "custom") {
+    $("#customURL").css("display", "block");
+    $("#dot-info").parent().css("display", "none");
+    $("input[name=update]").prop("disabled", true);
   } else {
-    document.form.customURL.disabled = true;
-    document.form.customURL.value = "";
-    document.form.update.disabled = false;
+    var dot_info = $("#" + value + "-info").html();
+    $("#customURL").css("display", "none");
+    $("#dot-info").parent().css("display", "block");
+    $("#dot-info").html(dot_info);      
+    $("input[name=update]").prop("disabled", false);
   }
 }
+
+$(document).ready(function(){ 
+  //$("div").css("border", "3px solid red");
+  handle();
+  $("input[name=cluster]").change(handle);
+});
 </script>
 <div class='container center jumbotron'>
   <h1> Welcome! </h1>
@@ -16,21 +37,26 @@ function updateForm() {
     <div class="control-group">
       <div class="btn-group btns" data-toggle="buttons" >
           <label class="btn btn-default">
-              <input type="radio" name="cluster" value="lom" onchange="updateForm();">Lomonosov
+              <input type="radio" name="cluster" value="lom">Lomonosov
           </label>
           <label class="btn btn-default active">
-              <input type="radio" name="cluster" value="cheb" onchange="updateForm();" checked>Chebyshev
+              <input type="radio" name="cluster" value="cheb" checked>Chebyshev
           </label>
           <label class="btn btn-default">
-              <input type="radio" name="cluster" value="lab" onchange="updateForm();">Laboratory
+              <input type="radio" name="cluster" value="lab">Laboratory
           </label>
           <label class="btn btn-default">
-              <input id="custom" type="radio" name="cluster" value="custom" onchange="updateForm();">Custom
+              <input id="custom" type="radio" name="cluster" value="custom">Custom
           </label>
       </div>
     </div>
+    <div class="control-group custom-text-input" id="customURL" style="display: none;">
+      <input type="text" placeholder="Paste custom URL" class="form-control">
+    </div>
     <div class="control-group custom-text-input">
-      <input type="text" placeholder="Paste custom URL" class="form-control" name="customURL" disabled>
+      <div id="dot-info" class="alert alert-info">
+        Something may have gone wrong
+      </div>
     </div>
     <div class="control-group">
       <div class="checkbox-custom">
@@ -44,3 +70,9 @@ function updateForm() {
     </div>
   </form>
 </div>
+<% clusters = ["cheb", "lom", "lab"] %>
+<% clusters.each do |cluster| %>
+<div id="<%= cluster %>-info" style="display: none;">
+<%= dot_info[cluster.to_sym] %>
+</div>
+<% end %>
