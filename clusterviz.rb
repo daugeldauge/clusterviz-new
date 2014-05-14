@@ -51,8 +51,8 @@ get '/' do
   clusters.each do |cluster|
     file = cluster + ".dot"
     stat = File.stat file
-    info = "Last updated: " + stat.ctime.strftime("%d.%m.%Y %H:%M:%S") + "<br>"
-    info += "Size: " + "%.2f" % [stat.size.to_f / (1024 * 1024)] + " MiB<br>"
+    info = "<strong>Last updated:</strong> " + stat.ctime.strftime("%d.%m.%Y %H:%M:%S") + "<br>"
+    info += "<strong>Size:</strong> " + "%.2f" % [stat.size.to_f / (1024 * 1024)] + " MiB<br>"
     #info += "IP: 0.0.0.0"
     dot_info[cluster.to_sym] = info;
   end
