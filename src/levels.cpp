@@ -590,7 +590,7 @@ void Model::printOneNodeParams(string &out, Agnode_t *n)
     out += "|";
     for (auto param = params.begin(); param != params.end(); ++param) {
         if (paramsToPrint.find(param->first) != paramsToPrint.end()) {
-            out += param->first + ": " + param->second +"\\l";
+            out += param->first + ": " + param->second +"\\n";
         }
     }
     size_t back = out.size() - 1;
