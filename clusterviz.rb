@@ -11,7 +11,7 @@ end
 
 get '/out.svg' do
   status 200  
-  if params['levels'] == 'on'
+  if params[:from] and not params[:from].empty? and params[:to] and not params[:to].empty?
     levels = params[:from] + ' ' + params[:to]
   else
     levels = '-1 -1'
@@ -25,6 +25,9 @@ get '/out.svg' do
   
   if params[:edgeType]
     cmd.push '--edge-type=' + params[:edgeType]
+  end
+  if params[:nodeAttrs]
+    cmd.push '--node-attrs=' + params[:nodeAttrs].gsub(/\s+/, '\ ')
   end
   if params[:aggregation] == 'on'
     cmd.push '--aggregate'

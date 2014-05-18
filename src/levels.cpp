@@ -22,7 +22,7 @@ using std::map;
 using std::vector;
 using std::pair;
 using std::make_pair;
-using std::ostringstream;
+using std::istringstream;
 
 struct ConfigValue
 {
@@ -183,7 +183,7 @@ void Model::loadConfig(const char *filename)
             throw string("Invalid configuration file");
         }
         edgeConfig.insert(make_pair(edgeType, configValue));
-    }
+    }   
 }
 
 void Model::load(const char *filename)
@@ -197,14 +197,9 @@ void Model::load(const char *filename)
     //agattr(g, AGNODE, "overlap", "prism=1000");
     //agattr(g, AGEDGE, "arrowhead", "empty");
     //paramsToPrint.insert("AID");
-    paramsToPrint.insert("ip");
+    //paramsToPrint.insert("ip");
     fclose(chebdot);
 
-    while (!std::cin.eof()) {
-        string s;
-        std::cin >> s;
-        paramsToPrint.insert(s);
-    }    
 }
 
 void Model::createLevels()
@@ -713,6 +708,14 @@ void Model::applyOption(int argc, char *argv[], int argn)
             delSingleNodes();
         } else if (strncmp(argv[argn], "--edge-type=", sizeof("--edge-type=") - 1) == 0) {
             edgeConfig[argv[argn] + sizeof("--edge-type=") - 1].isNeeded = true;
+        } else if (strncmp(argv[argn], "--node-attrs=", sizeof("--node-attrs=") - 1) == 0) {
+            istringstream iss(argv[argn] + sizeof("--node-attrs=") - 1);
+            while (!iss.eof()) {
+                string s;
+                iss >> s;
+                cout << s << endl;
+                paramsToPrint.insert(s);
+            } 
         }
 
     }
@@ -730,6 +733,7 @@ int main(int argc, char *argv[])
         
         m.loadConfig("config.txt");
         m.applyOption(argc, argv, 6);
+        m.applyOption(argc, argv, 7);
 
         m.parseNodeParams();
         //m.printNodeParamsNames();
@@ -745,11 +749,8 @@ int main(int argc, char *argv[])
         if (from != -1 && to != -1) {
             m.pickLevels(from, to);
         }
-        //cout << "ok" << endl;
-        
-        m.applyOption(argc, argv, 7);
-        //cout << "ok" << endl;
         m.applyOption(argc, argv, 8);
+        m.applyOption(argc, argv, 9);
         //cout << "ok" << endl;
         m.render(argv[4], argv[5]);
     } catch (const string &s) {

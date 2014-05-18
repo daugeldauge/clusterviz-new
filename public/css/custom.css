@@ -30,7 +30,8 @@ body {
 .custom-text-input {
   padding-top: 10px;
   max-width: 350px;
-  margin: auto;
+  width: 50%;
+  margin: 0 auto;
 }
 
 .checkbox-custom {
@@ -57,6 +58,7 @@ body {
 	max-width: 680px;
 	padding: 0 15px;
 }
+
 
 #dot-info {
   margin-bottom: 0px;

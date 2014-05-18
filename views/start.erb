@@ -14,11 +14,14 @@ function handle() {
   var value = $(":input[name=cluster]:checked").prop("value");
   if (value == "custom") {
     $("#customURL").css("display", "block");
+    $("input[name=customURL]").prop("disabled", false);
+
     $("#dot-info").parent().css("display", "none");
     $("input[name=update]").prop("disabled", true);
   } else {
     var dot_info = $("#" + value + "-info").html();
     $("#customURL").css("display", "none");
+    $("input[name=customURL]").prop("disabled", true);
     $("#dot-info").parent().css("display", "block");
     $("#dot-info").html(dot_info);      
     $("input[name=update]").prop("disabled", false);
@@ -34,7 +37,7 @@ $(document).ready(function(){
 <div class='container center jumbotron'>
   <h1> Welcome! </h1>
   <form name="form" class="form-horizontal" action='continue' >
-    <div class="control-group">
+    <div class="">
       <div class="btn-group btns" data-toggle="buttons" >
           <label class="btn btn-default">
               <input type="radio" name="cluster" value="lom">Lomonosov
@@ -50,15 +53,15 @@ $(document).ready(function(){
           </label>
       </div>
     </div>
-    <div class="control-group custom-text-input" id="customURL" style="display: none;">
+    <div class=" custom-text-input " id="customURL" style="display: none;">
       <input type="text" name="customURL" placeholder="Paste custom URL" class="form-control">
     </div>
-    <div class="control-group custom-text-input">
+    <div class=" custom-text-input ">
       <div id="dot-info" class="alert alert-info">
         Something may have gone wrong
       </div>
     </div>
-    <div class="control-group">
+    <div class="">
       <div class="checkbox-custom">
         <label>
           <input type="checkbox" name="update"> Update .dot file
