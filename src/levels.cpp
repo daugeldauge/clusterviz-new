@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include <sstream>
 
 #include <graphviz/gvc.h>
 
@@ -21,6 +22,7 @@ using std::map;
 using std::vector;
 using std::pair;
 using std::make_pair;
+using std::ostringstream;
 
 struct ConfigValue
 {
@@ -38,6 +40,7 @@ public:
     void load(const char *filename);
     void loadConfig(const char *filename);
     void createLevels();
+    void parseNodeParams();
     void handleEdges();
     void assignTypesToLabels();
     void delAllLabels();
@@ -49,24 +52,34 @@ public:
     void deleteLevelsFromRoot(char *name, int levelsnum);
     void colorizeEdges();
     void printNodeTypes();
+    void printNodeParamsNames();
     void printEdgeTypes();
     void getNodeTypes(set<string> &types);
     void aggregateLeaves();
     void aggregate();
     void applyOption(int argc, char *argv[], int argn);
     void render(char *layout, char *render);
+
 private:
     Agraph_t *g;
     vector<set<Agnode_t *>> levels;
 
     map<string, ConfigValue> edgeConfig;
+    map<Agnode_t *, map<string, string>> nodeParams;
+    set<string> nodeParamsNames;
+    set<string> paramsToPrint;
+    map<Agnode_t *, string> aggregatedLabels;
     // static char *edgeTypes[];
     // static bool isTypeNeeded[];
     // static char *colors[];
-
+    
+    void printOneNodeParams(string &out, Agnode_t *n);
+    void merge(Agnode_t *n1, Agnode_t *n2, int minLevel);
+    void assignAggregatedLabels();
+    map<string, string> parseLabel(string label);
     void clearSingleLinksLabels();
     void deleteNode(Agnode_t *n, int minLevel);
-    set<Agedge_t *> getAllOutEdges(Agnode_t *n);
+    vector<Agedge_t *> getAllOutEdges(Agnode_t *n);
     set<Agnode_t *> getParents(Agnode_t *n);
     void assignCount(Agnode_t *n, int count);
     bool isEqual(Agnode_t *n1, Agnode_t *n2);
@@ -101,6 +114,63 @@ Model::~Model()
     }
 }
 
+map<string, string> Model::parseLabel(string label)
+{
+    map<string, string> params;
+    size_t curPos = 0;
+    for (;;) {
+        string option, value;
+        size_t from, to;
+        
+        from = label.find('\'', curPos);
+        if (from == string::npos) {
+            return params;
+        }
+        ++from;
+
+        to = label.find('\'', from);
+        if (to == string::npos) {
+            return params;
+        }
+
+        option = label.substr(from , to - from);
+
+        from = to + sizeof(" = ");
+        to = label.find(' ', from);
+        if (to == string::npos) {
+            return params;
+        }
+
+        value = label.substr(from , to - from);
+    
+        params.insert(make_pair(option, value));
+        nodeParamsNames.insert(option);
+        
+        curPos = to + 1;
+    } 
+}
+
+string Model::getType(const string &s) 
+{
+    size_t from = s.find("'type' = '");
+    if (from == string::npos) {
+        return string("");
+    }
+    from += 10;
+    size_t to = s.find_first_of('\'', from );
+    if (to == string::npos) {
+        return string("");
+    }
+    return s.substr(from, to - from);
+}
+
+void Model::parseNodeParams()
+{
+    for (Agnode_t *n = agfstnode(g); n; n = agnxtnode(g, n)) {
+        nodeParams.insert(make_pair(n, parseLabel(agget(n, "label"))));
+    }
+}
+
 void Model::loadConfig(const char *filename)
 {
     std::ifstream in;
@@ -126,7 +196,15 @@ void Model::load(const char *filename)
     agattr(g, AGNODE, "xlabel", "");
     //agattr(g, AGNODE, "overlap", "prism=1000");
     //agattr(g, AGEDGE, "arrowhead", "empty");
+    //paramsToPrint.insert("AID");
+    paramsToPrint.insert("ip");
     fclose(chebdot);
+
+    while (!std::cin.eof()) {
+        string s;
+        std::cin >> s;
+        paramsToPrint.insert(s);
+    }    
 }
 
 void Model::createLevels()
@@ -158,20 +236,6 @@ void Model::createLevels()
             }
         }
     }    
-}
-
-string Model::getType(const string &s) 
-{
-    size_t from = s.find("'type' = '");
-    if (from == string::npos) {
-        return string("");
-    }
-    from += 10;
-    size_t to = s.find_first_of('\'', from );
-    if (to == string::npos) {
-        return string("");
-    }
-    return s.substr(from, to - from);
 }
 
 void Model::assignTypesToLabels()
@@ -353,6 +417,13 @@ void Model::printNodeTypes()
     }
 }
 
+void Model::printNodeParamsNames()
+{
+    for (auto it = nodeParamsNames.begin(); it != nodeParamsNames.end(); ++it) {
+        cout << *it << ' ';
+    }
+}
+
 void Model::aggregateLeaves()
 {
     set<string> types;
@@ -399,11 +470,11 @@ void Model::getLeaves(set<Agnode_t *> &leaves)
     }
 }
 
-set<Agedge_t *> Model::getAllOutEdges(Agnode_t *n)
+vector<Agedge_t *> Model::getAllOutEdges(Agnode_t *n)
 {
-    set<Agedge_t *> edges;
+    vector<Agedge_t *> edges;
     for (Agedge_t *e = agfstout(g, n); e; e = agnxtout(g, e)) {
-        edges.insert(e);
+        edges.push_back(e);
     }
     return edges;
 }
@@ -450,7 +521,7 @@ bool Model::isEqual(Agnode_t *n1, Agnode_t *n2)
     }
 
 
-    set<Agedge_t *> n1Edges, n2Edges;
+    vector<Agedge_t *> n1Edges, n2Edges;
     n1Edges = getAllOutEdges(n1);
     n2Edges = getAllOutEdges(n2);
 
@@ -478,11 +549,11 @@ bool Model::isEqual(Agnode_t *n1, Agnode_t *n2)
 
 void Model::deleteNode(Agnode_t *n, int minLevel)
 {
-    Agedge_t *e, *f;
-    for (e = agfstout(g, n); e; e = f) {
-        f = agnxtout(g, e);
-        deleteNode(aghead(e), minLevel + 1);
-    }
+    // Agedge_t *e, *f;
+    // for (e = agfstout(g, n); e; e = f) {
+    //     f = agnxtout(g, e);
+    //     deleteNode(aghead(e), minLevel + 1);
+    // }
 
     int i = minLevel;
     set<Agnode_t *>::iterator it;
@@ -494,7 +565,11 @@ void Model::deleteNode(Agnode_t *n, int minLevel)
     } while (it == levels[i++].end());
     
     levels[i - 1].erase(n);
+
+    aggregatedLabels.erase(n);
+
     agdelnode(g, n);
+
 }
 
 void Model::assignCount(Agnode_t *n, int count)
@@ -513,6 +588,65 @@ void Model::clearSingleLinksLabels()
         }
     }
 }
+
+void Model::printOneNodeParams(string &out, Agnode_t *n)
+{
+    map<string, string> params = nodeParams[n];
+    out += "|";
+    for (auto param = params.begin(); param != params.end(); ++param) {
+        if (paramsToPrint.find(param->first) != paramsToPrint.end()) {
+            out += param->first + ": " + param->second +"\n";
+        }
+    }
+    size_t back = out.size() - 1;
+    if (out[back] == '|') {
+        out.erase(back, 1);
+    }
+}
+
+void Model::merge(Agnode_t *n1, Agnode_t *n2, int minLevel)
+{
+    //cout << "begin ";
+    vector<Agedge_t *> n1Edges, n2Edges;
+    n1Edges = getAllOutEdges(n1);
+    n2Edges = getAllOutEdges(n2);
+
+    for (auto u = n1Edges.begin(); u != n1Edges.end(); ++u) {
+        for (auto v = n2Edges.begin(); v != n2Edges.end(); ++v) {
+            if (!(*v) || strcmp(agget(*u, "label"), agget(*v, "label"))) {
+                continue;
+            }
+            if (isEqual(aghead(*u), aghead(*v))) {
+                merge(aghead(*u), aghead(*v), minLevel + 1);
+                *v = 0;
+                //cout << "never land \n";
+                //assignCount(aghead(*u),  2 * atoi(agget(*u, "label")));
+                break;
+            }
+        }
+    }
+    //cout << "middle ";
+    auto n1Label = aggregatedLabels.find(n1);
+    auto n2Label = aggregatedLabels.find(n2);
+    if (n2Label != aggregatedLabels.end()) {
+        n1Label->second += n2Label->second;
+    } else {
+        printOneNodeParams(n1Label->second, n2);
+    }
+    // agdelnode(g, n2);
+    deleteNode(n2, minLevel);
+    //TODO: delete from levels
+    //cout << "end" << endl;
+}
+
+void Model::assignAggregatedLabels()
+{
+    for (auto p = aggregatedLabels.begin(); p != aggregatedLabels.end(); ++p) {
+        string label = string("{") + agget(p->first, "label") + p->second + "}";
+        agset(p->first, "label", toCstr(label));
+    }
+}
+
 void Model::aggregate()
 {
     for (int i = levels.size() - 2; i >= 0; --i) {
@@ -523,6 +657,11 @@ void Model::aggregate()
                     continue;
                 }
                 linkCount = 1;
+                
+                string &label = aggregatedLabels.insert(make_pair(aghead(e), string())).first->second;
+
+                //label += string("{") + agget(aghead(e), "label");
+                printOneNodeParams(label, aghead(e));
 
                 Agedge_t *u, *v;
                 for (u = agfstout(g, *node); u; u = v) {
@@ -531,7 +670,9 @@ void Model::aggregate()
 
                     if (isEqual(head, aghead(e))) {
                         ++linkCount;
-                        deleteNode(head, i);
+                        merge(aghead(e), head, i);
+                        //printOneNodeParams(label, head);
+                        //deleteNode(head, i);
                     }
                 }
 
@@ -542,7 +683,13 @@ void Model::aggregate()
             }
         }
     }
+    for (auto node = levels[0].begin(); node != levels[0].end(); ++node) {
+        string &label = aggregatedLabels.insert(make_pair(*node, string())).first->second;
+        printOneNodeParams(label, *node);
+    }
+    assignAggregatedLabels();
     clearSingleLinksLabels();
+
 }
 
 
@@ -583,6 +730,9 @@ int main(int argc, char *argv[])
         
         m.loadConfig("config.txt");
         m.applyOption(argc, argv, 6);
+
+        m.parseNodeParams();
+        //m.printNodeParamsNames();
 
         m.assignTypesToLabels();
         m.handleEdges();
