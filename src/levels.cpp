@@ -57,7 +57,8 @@ public:
     void getNodeTypes(set<string> &types);
     void aggregateLeaves();
     void aggregate();
-    void applyOption(int argc, char *argv[], int argn);
+    void addNodeAttrs(const string &attrs);
+    void addEdgeType(const string &type);
     void render(char *layout, char *render);
 
 private:
@@ -630,7 +631,6 @@ void Model::merge(Agnode_t *n1, Agnode_t *n2, int minLevel)
     }
     // agdelnode(g, n2);
     deleteNode(n2, minLevel);
-    //TODO: delete from levels
     //cout << "end" << endl;
 }
 
@@ -639,6 +639,7 @@ void Model::assignAggregatedLabels()
     for (auto p = aggregatedLabels.begin(); p != aggregatedLabels.end(); ++p) {
         string label = string("{") + agget(p->first, "label") + p->second + "}";
         agset(p->first, "label", toCstr(label));
+        cout << toCstr(label) << endl;
     }
 }
 
@@ -699,41 +700,66 @@ void Model::printLevels()
     }
 }
 
-void Model::applyOption(int argc, char *argv[], int argn)
-{
-    if (argn < argc) {
-        if (argv[argn] == string("--aggregate")) {
-            aggregate();
-        } else if (argv[argn] == string("--remove-single-nodes")) {
-            delSingleNodes();
-        } else if (strncmp(argv[argn], "--edge-type=", sizeof("--edge-type=") - 1) == 0) {
-            edgeConfig[argv[argn] + sizeof("--edge-type=") - 1].isNeeded = true;
-        } else if (strncmp(argv[argn], "--node-attrs=", sizeof("--node-attrs=") - 1) == 0) {
-            istringstream iss(argv[argn] + sizeof("--node-attrs=") - 1);
-            while (!iss.eof()) {
-                string s;
-                iss >> s;
-                cout << s << endl;
-                paramsToPrint.insert(s);
-            } 
-        }
-
-    }
+void Model::addEdgeType(const string &type) {
+    edgeConfig[type].isNeeded = true;
 }
+
+void Model::addNodeAttrs(const string &attrs) {
+    istringstream iss(attrs);
+    while (!iss.eof()) {
+        string s;
+        iss >> s;
+        cout << s << endl;
+        paramsToPrint.insert(s);
+    } 
+}
+
+class CommandLineOptions {
+    int argc;
+    char **argv;
+public:
+    CommandLineOptions(int c, char **v): argc(c), argv(v) {}
+    bool getOption(const string &opt, string &value) {
+        for (int i = 0; i < argc; ++i) {
+            string arg = argv[i];
+            size_t len = opt.length();
+            if (arg.compare(0, len, opt) == 0) {
+                // cout << opt;
+                if (arg[len] == '=') {
+                    value =  arg.substr(len + 1);
+                    // cout << " = " << value;
+                }
+                // cout << endl;
+                return true;
+            }
+        }
+        return false;
+    }
+};
 
 int main(int argc, char *argv[])
 {
     try {
+        CommandLineOptions opts(argc, argv);
+
         Model m;
         m.load(argv[1]);
-        if (argv[2] == string("--print-edge-types")) {
+
+        string val;
+        if (opts.getOption("--print-edge-types", val)) {
             m.printEdgeTypes();
             return 0;
         }
         
         m.loadConfig("config.txt");
-        m.applyOption(argc, argv, 6);
-        m.applyOption(argc, argv, 7);
+        
+        if (opts.getOption("--edge-type", val)) {
+            m.addEdgeType(val);
+        }
+        if (opts.getOption("--node-attrs", val)) {
+            m.addNodeAttrs(val);
+        }
+
 
         m.parseNodeParams();
         //m.printNodeParamsNames();
@@ -749,9 +775,14 @@ int main(int argc, char *argv[])
         if (from != -1 && to != -1) {
             m.pickLevels(from, to);
         }
-        m.applyOption(argc, argv, 8);
-        m.applyOption(argc, argv, 9);
-        //cout << "ok" << endl;
+
+        if (opts.getOption("--aggregate", val)) {
+            m.aggregate();
+        }
+        if (opts.getOption("--remove-single-nodes", val)) {
+            m.delSingleNodes();
+        }
+
         m.render(argv[4], argv[5]);
     } catch (const string &s) {
         std::cout << "Error: " << s << std::endl; 

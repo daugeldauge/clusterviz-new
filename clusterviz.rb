@@ -1,3 +1,4 @@
+require 'open3'
 require 'sinatra'
 require 'sinatra/contrib'
 
@@ -38,13 +39,18 @@ get '/out.svg' do
 
   cmd = cmd.join ' '
 
+  puts
   puts cmd
-  if system cmd
+  output, status = Open3.capture2e cmd
+  puts output
+  puts
+
+  if status.success?
     headers 'Content-Type' => 'image/svg+xml', 'Content-Disposition' =>'inline'
     puts 'OK'
     body IO.read 'out.svg'
   else
-    error_page "Generator's execution error." 
+    error_page("<pre>" + output + "<br>" + status.to_s + "</pre>" ) 
   end
 end
 
@@ -80,12 +86,17 @@ get '/continue' do
   end
 
   cmd = 'bin/levels ' + params[:cluster] + '.dot --print-edge-types'
+  
+  puts
   puts cmd
-  types = %x{#{cmd}}
-  if $?.success?
-    erb :form, :locals => {:types => types.split}
+  output, status = Open3.capture2e cmd
+  puts output
+  puts
+
+  if status.success?
+    erb :form, :locals => {:types => output.split}
   else 
-    error_page 'Could not retrieve edge types from .dot file.'
+    error_page("Could not retrieve edge types from .dot file: <pre>" + output + "<br>" + status.to_s + "</pre>")
   end
 end
 
