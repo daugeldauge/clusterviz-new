@@ -12,48 +12,65 @@ def error_page msg
   erb :error, :locals => {:msg => msg}
 end
 
+def execute cmd
+  pid = 0
+  puts
+  puts cmd
+  begin 
+    Timeout::timeout(25) do
+      stdin, stdout, wait_thread = Open3.popen2e(cmd)
+      pid = wait_thread.pid
+      status = wait_thread.value
+      output = stdout.read
+
+      puts output
+      puts
+
+      [output, status]
+    end 
+  rescue Timeout::Error
+    Process.kill('INT', pid)
+    puts "I've killed him, oohh"
+    raise
+  end
+end
+
 get '/out.svg' do
-  Timeout::timeout(29) do
-    if params[:from] and not params[:from].empty? and params[:to] and not params[:to].empty?
-      levels = params[:from] + ' ' + params[:to]
-    else
-      levels = '-1 -1'
-    end
+  if params[:from] and not params[:from].empty? and params[:to] and not params[:to].empty?
+    levels = params[:from] + ' ' + params[:to]
+  else
+    levels = '-1 -1'
+  end
 
-    cmd = ['bin/levels']
-    cmd.push params[:cluster] + '.dot'
-    cmd.push levels 
-    cmd.push params[:drawingAlgorithm]
-    cmd.push 'out.svg' 
-    
-    if params[:edgeType]
-      cmd.push '--edge-type=' + params[:edgeType]
-    end
-    if params[:nodeAttrs]
-      cmd.push '--node-attrs=' + params[:nodeAttrs].gsub(/\s+/, '\ ')
-    end
-    if params[:aggregation] == 'on'
-      cmd.push '--aggregate'
-    end
-    if params[:singleNodesRemoving] == 'on'
-      cmd.push '--remove-single-nodes'
-    end
+  cmd = ['bin/levels']
+  cmd.push params[:cluster] + '.dot'
+  cmd.push levels 
+  cmd.push params[:drawingAlgorithm]
+  cmd.push 'out.svg' 
+  
+  if params[:edgeType]
+    cmd.push '--edge-type=' + params[:edgeType]
+  end
+  if params[:nodeAttrs]
+    cmd.push '--node-attrs=' + params[:nodeAttrs].gsub(/\s+/, '\ ')
+  end
+  if params[:aggregation] == 'on'
+    cmd.push '--aggregate'
+  end
+  if params[:singleNodesRemoving] == 'on'
+    cmd.push '--remove-single-nodes'
+  end
 
-    cmd = cmd.join ' '
+  cmd = cmd.join ' '
 
-    puts
-    puts cmd
-    output, status = Open3.capture2e cmd
-    puts output
-    puts
-
-    if status.success?
-      headers 'Content-Type' => 'image/svg+xml', 'Content-Disposition' =>'inline'
-      puts 'OK'
-      body IO.read 'out.svg'
-    else
-      error_page("<pre>" + output + "<br>" + status.to_s + "</pre>" ) 
-    end
+  output, status = execute cmd
+  
+  if status.success?
+    headers 'Content-Type' => 'image/svg+xml', 'Content-Disposition' =>'inline'
+    puts 'OK'
+    body IO.read 'out.svg'
+  else
+    error_page("<pre>" + output + "<br>" + status.to_s + "</pre>" ) 
   end
 end
 
@@ -73,35 +90,29 @@ end
 
 
 get '/continue' do
-  Timeout::timeout(29) do
-    if params[:update] == 'on' or params[:cluster] == 'custom'
-      urls = {
-          :lom => "http://user@stat1.lomonosov.parallel.ru:4448/view/export?format=dot", 
-          :cheb => "http://user@graphit.parallel.ru:4446/view/export?format=dot", 
-          :lab => "http://user@graphit.parallel.ru:4447/view/export?format=dot",
-          :custom => params[:customURL]
-      }
-      cluster = params[:cluster]
-      cmd = 'curl ' + urls[cluster.to_sym] + ' > ' + cluster + '.dot'
-      puts cmd
-      if not system cmd
-        return error_page 'Could not load .dot file.'
-      end
-    end
-
-    cmd = 'bin/levels ' + params[:cluster] + '.dot --print-edge-types'
-    
-    puts
+  if params[:update] == 'on' or params[:cluster] == 'custom'
+    urls = {
+        :lom => "http://user@stat1.lomonosov.parallel.ru:4448/view/export?format=dot", 
+        :cheb => "http://user@graphit.parallel.ru:4446/view/export?format=dot", 
+        :lab => "http://user@graphit.parallel.ru:4447/view/export?format=dot",
+        :custom => params[:customURL]
+    }
+    cluster = params[:cluster]
+    cmd = 'curl ' + urls[cluster.to_sym] + ' > ' + cluster + '.dot'
     puts cmd
-    output, status = Open3.capture2e cmd
-    puts output
-    puts
-
-    if status.success?
-      erb :form, :locals => {:types => output.split}
-    else 
-      error_page("Could not retrieve edge types from .dot file: <pre>" + output + "<br>" + status.to_s + "</pre>")
+    if not system cmd
+      return error_page 'Could not load .dot file.'
     end
+  end
+
+  cmd = 'bin/levels ' + params[:cluster] + '.dot --print-edge-types'
+
+  output, status = execute cmd
+
+  if status.success?
+    erb :form, :locals => {:types => output.split}
+  else 
+    error_page("Could not retrieve edge types from .dot file: <pre>" + output + "<br>" + status.to_s + "</pre>")
   end
 end
 
