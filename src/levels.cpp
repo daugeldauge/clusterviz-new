@@ -639,7 +639,6 @@ void Model::assignAggregatedLabels()
     for (auto p = aggregatedLabels.begin(); p != aggregatedLabels.end(); ++p) {
         string label = string("{") + agget(p->first, "label") + p->second + "}";
         agset(p->first, "label", toCstr(label));
-        cout << toCstr(label) << endl;
     }
 }
 
