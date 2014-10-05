@@ -1,12 +1,12 @@
 require 'open3'
 require 'sinatra'
 require 'sinatra/contrib'
-require "timeout"
+require 'timeout'
 
 configure do
-  raise "Compilation error" unless system 'make -C src/'
+  raise 'Compilation error' unless system 'make -C src/'
   set :show_exceptions => false
-end 
+end
 
 def error_page msg
   erb :error, :locals => {:msg => msg}
@@ -70,18 +70,18 @@ get '/out.svg' do
     puts 'OK'
     body IO.read 'out.svg'
   else
-    error_page("<pre>" + output + "<br>" + status.to_s + "</pre>" ) 
+    error_page('<pre>' + output + '<br>' + status.to_s + '</pre>' )
   end
 end
 
 get '/' do
-  clusters = ["cheb", "lom", "lab"]
+  clusters = %w(cheb lom lab)
   dot_info = {}
   clusters.each do |cluster|
-    file = cluster + ".dot"
+    file = cluster + '.dot'
     stat = File.stat file
-    info = "<strong>Last updated:</strong> " + stat.ctime.strftime("%d.%m.%Y %H:%M:%S") + "<br>"
-    info += "<strong>Size:</strong> " + "%.2f" % [stat.size.to_f / (1024 * 1024)] + " MiB<br>"
+    info = '<strong>Last updated:</strong> ' + stat.ctime.strftime('%d.%m.%Y %H:%M:%S') + '<br>'
+    info += '<strong>Size:</strong> ' + '%.2f' % [stat.size.to_f / (1024 * 1024)] + ' MiB<br>'
     #info += "IP: 0.0.0.0"
     dot_info[cluster.to_sym] = info;
   end
@@ -92,9 +92,9 @@ end
 get '/continue' do
   if params[:update] == 'on' or params[:cluster] == 'custom'
     urls = {
-        :lom => "http://user@stat1.lomonosov.parallel.ru:4448/view/export?format=dot", 
-        :cheb => "http://user@graphit.parallel.ru:4446/view/export?format=dot", 
-        :lab => "http://user@graphit.parallel.ru:4447/view/export?format=dot",
+        :lom => 'http://user@stat1.lomonosov.parallel.ru:4448/view/export?format=dot',
+        :cheb => 'http://user@graphit.parallel.ru:4446/view/export?format=dot',
+        :lab => 'http://user@graphit.parallel.ru:4447/view/export?format=dot',
         :custom => params[:customURL]
     }
     cluster = params[:cluster]
@@ -112,7 +112,7 @@ get '/continue' do
   if status.success?
     erb :form, :locals => {:types => output.split}
   else 
-    error_page("Could not retrieve edge types from .dot file: <pre>" + output + "<br>" + status.to_s + "</pre>")
+    error_page('Could not retrieve edge types from .dot file: <pre>' + output + '<br>' + status.to_s + '</pre>')
   end
 end
 
@@ -129,5 +129,5 @@ not_found do
 end
 
 error Timeout::Error do
-  error_page "Time limit exceeded." 
+  error_page 'Time limit exceeded.'
 end
