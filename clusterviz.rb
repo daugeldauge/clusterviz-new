@@ -30,45 +30,15 @@ end
 get '/json' do
   headers 'Content-Type' => 'application\json'
   {
-    nodes:[
-      {
-        id: 'n1',
-        label: 'node 1',
-        size: 3,
-        x: 0,
-        y: 0
-      },
-      {
-        id: 'n2',
-        label: 'node 2',
-        size: 2,
-        x: 1,
-        y: 0
-       },
-      {
-        id: 'n3',
-        label: 'node 3',
-        size: 1,
-        x: 1,
-        y: 1
-      },
-    ],
-    edges:[
-      {
-        id: 'e1',
-        source: 'n1',
-        target: 'n2'
-      },
-      {
-        id: 'e2',
-        source: 'n1',
-        target: 'n3'
-      },
-      {
-        id: 'e3',
-        source: 'n2',
-        target: 'n3'
-      },
+    name: 'hello',
+    children: [
+      {name: 'n1', size: 10000},
+      {name: 'n2', size: 20000},
+      {name: 'n3', size: 10000},
+      {name: 'n4', size: 10000},
+      {name: 'n5', size: 30000},
+      {name: 'n6', size: 10000},
+      {name: 'n7', size: 10000},
     ]
   }.to_json
 end

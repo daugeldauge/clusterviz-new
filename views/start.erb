@@ -1,28 +1,24 @@
 <style type="text/css">
-    #sigma-parent {
-        position: relative;
-        background: #ffffff;
-        height: 500px;
-    }
-    #sigma-expand {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        background: #E9E9E9;
+
+    .link line {
+        stroke: #696969;
     }
 
+    .link line.separator {
+        stroke: #fff;
+        stroke-width: 2px;
+    }
+
+    .node circle {
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+    .node text {
+        font: 10px sans-serif;
+        pointer-events: none;
+    }
 </style>
-<div class="buttons-container">
-  <button class="btn" id="stop-layout">Stop Layout</button>
-  <button class="btn" id="rescale-graph">Rescale Graph</button>
-</div>
-<div id="sigma-parent">
-  <div id="sigma-expand"></div>
-</div>
 <!--<script src="/js/jquery.min.js"></script>-->
-<script src="/js/sigma.min.js"></script>
-<script src="/js/sigma.parsers.json.min.js"></script>
-<script src="/js/sigma.layout.forceAtlas2.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="/js/viz.js"></script>
