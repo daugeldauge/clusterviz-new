@@ -1,77 +1,16 @@
 require 'open3'
+require 'json'
 require 'sinatra'
 require 'sinatra/contrib'
 require 'timeout'
 
 configure do
-  raise 'Compilation error' unless system 'make -C src/'
-  set :show_exceptions => false
+  #raise 'Compilation error' unless system 'make -C src/'
+  #set :show_exceptions => false
 end
 
 def error_page msg
   erb :error, :locals => {:msg => msg}
-end
-
-def execute cmd
-  pid = 0
-  puts
-  puts cmd
-  begin 
-    Timeout::timeout(25) do
-      stdin, stdout, wait_thread = Open3.popen2e(cmd)
-      pid = wait_thread.pid
-      status = wait_thread.value
-      output = stdout.read
-
-      puts output
-      puts
-
-      [output, status]
-    end 
-  rescue Timeout::Error
-    Process.kill('INT', pid)
-    puts "I've killed him, oohh"
-    raise
-  end
-end
-
-get '/out.svg' do
-  if params[:from] and not params[:from].empty? and params[:to] and not params[:to].empty?
-    levels = params[:from] + ' ' + params[:to]
-  else
-    levels = '-1 -1'
-  end
-
-  cmd = ['bin/levels']
-  cmd.push params[:cluster] + '.dot'
-  cmd.push levels 
-  cmd.push params[:drawingAlgorithm]
-  cmd.push 'out.svg' 
-  
-  if params[:edgeType]
-    cmd.push '--edge-type=' + params[:edgeType]
-  end
-  if params[:nodeAttrs]
-    cmd.push '--node-attrs=' + params[:nodeAttrs].gsub(/\s+/, '\ ')
-  end
-  if params[:aggregation] == 'on'
-    cmd.push '--aggregate'
-  end
-  if params[:singleNodesRemoving] == 'on'
-    cmd.push '--remove-single-nodes'
-  end
-
-  cmd = cmd.join ' '
-
-  output, status = execute cmd
-  
-  if status.success?
-    headers 'Content-Type' => 'image/svg+xml', 'Content-Disposition' =>'inline'
-    puts 'OK'
-    body IO.read 'out.svg'
-  else
-    error_page('<pre>' + output + '<br>' + status.to_s + '</pre>' )
-  end
 end
 
 get '/' do
@@ -83,51 +22,53 @@ get '/' do
     info = '<strong>Last updated:</strong> ' + stat.ctime.strftime('%d.%m.%Y %H:%M:%S') + '<br>'
     info += '<strong>Size:</strong> ' + '%.2f' % [stat.size.to_f / (1024 * 1024)] + ' MiB<br>'
     #info += "IP: 0.0.0.0"
-    dot_info[cluster.to_sym] = info;
+    dot_info[cluster.to_sym] = info
   end
-  erb :start, :locals => {:dot_info => dot_info}
+  erb :start
 end
 
-
-get '/continue' do
-  if params[:update] == 'on' or params[:cluster] == 'custom'
-    urls = {
-        :lom => 'http://user@stat1.lomonosov.parallel.ru:4448/view/export?format=dot',
-        :cheb => 'http://user@graphit.parallel.ru:4446/view/export?format=dot',
-        :lab => 'http://user@graphit.parallel.ru:4447/view/export?format=dot',
-        :custom => params[:customURL]
-    }
-    cluster = params[:cluster]
-    cmd = 'curl ' + urls[cluster.to_sym] + ' > ' + cluster + '.dot'
-    puts cmd
-    if not system cmd
-      return error_page 'Could not load .dot file.'
-    end
-  end
-
-  cmd = 'bin/levels ' + params[:cluster] + '.dot --print-edge-types'
-
-  output, status = execute cmd
-
-  if status.success?
-    erb :form, :locals => {:types => output.split}
-  else 
-    error_page('Could not retrieve edge types from .dot file: <pre>' + output + '<br>' + status.to_s + '</pre>')
-  end
-end
-
-get '/about' do
-  erb :about
-end
-
-get '/contact' do
-  erb :contact
-end
-
-not_found do
-  error_page '404'
-end
-
-error Timeout::Error do
-  error_page 'Time limit exceeded.'
+get '/json' do
+  headers 'Content-Type' => 'application\json'
+  {
+    nodes:[
+      {
+        id: 'n1',
+        label: 'node 1',
+        size: 3,
+        x: 0,
+        y: 0
+      },
+      {
+        id: 'n2',
+        label: 'node 2',
+        size: 2,
+        x: 0,
+        y: 0
+       },
+      {
+        id: 'n3',
+        label: 'node 3',
+        size: 1,
+        x: 0,
+        y: 0
+      },
+    ],
+    edges:[
+      {
+        id: 'e1',
+        source: 'n1',
+        target: 'n2'
+      },
+      {
+        id: 'e2',
+        source: 'n1',
+        target: 'n3'
+      },
+      {
+        id: 'e3',
+        source: 'n2',
+        target: 'n3'
+      },
+    ]
+  }.to_json
 end

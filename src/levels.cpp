@@ -366,10 +366,10 @@ void Model::render(char *layout, char *filename)
     gvRenderFilename(gvc, g, "svg", filename);
     gvFreeLayout(gvc, g);
     gvFreeContext(gvc);
-    //not necessary
-    // FILE *out = fopen("res.dot", "w"); 
-    // agwrite(g, out);
-    // fclose(out);
+//  not necessary
+    FILE *out = fopen((string(filename) + ".dot").c_str(), "w");
+    agwrite(g, out);
+    fclose(out);
 }
 
 inline bool Model::isOfType(Agedge_t *e, char *type)
