@@ -42,15 +42,15 @@ get '/json' do
         id: 'n2',
         label: 'node 2',
         size: 2,
-        x: 0,
+        x: 1,
         y: 0
        },
       {
         id: 'n3',
         label: 'node 3',
         size: 1,
-        x: 0,
-        y: 0
+        x: 1,
+        y: 1
       },
     ],
     edges:[
