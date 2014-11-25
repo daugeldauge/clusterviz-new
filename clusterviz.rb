@@ -101,6 +101,10 @@ get '/neo' do
   get_graph(links).to_json
 end
 
+get '/root' do
+  {nodes: [{id: 10184, size: 15, type: "room"}], links: []}.to_json
+end
+
 get '/' do
   erb :start
 end

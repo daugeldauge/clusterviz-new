@@ -70,12 +70,8 @@ body {
 }
 
 
-.link line {
+.link {
   stroke: #696969;
-}
-
-.link line.separator {
-  stroke: #fff;
 }
 
 .node circle {

@@ -1,87 +1,86 @@
-var width = $("#canvas").width(),
-    height = $("#canvas").height();
+var w = $("#canvas").innerWidth(),
+    h = $("#canvas").innerHeight();
+
+var svg = d3.select("#canvas").append("svg:svg")
+    .attr("width", w)
+    .attr("height", h);
 
 var color = d3.scale.category20();
 
 var radius = d3.scale.sqrt()
     .range([0, 6]);
 
-var svg = d3.select("#canvas").append("svg")
-    .attr("width", width)
-    .attr("height", height)
-    .style("background", "lightgrey");
-
 var force = d3.layout.force()
-    // .nodes(nodes)
-    // .links(links)
     .gravity(.05)
-    .size([width, height])
+    .distance(60)
     .charge(-400)
-    .linkDistance(function(d) { return radius(d.source.size) + radius(d.target.size) + 20; })
-    .on("tick", tick);
+    .size([w, h]);
 
-var graph;
+var nodes,
+    links, 
+    index,
+    indexSize;
 
-var node = svg.selectAll(".node"),
-    link = svg.selectAll(".link");
 
-d3.json("/neo", function(json) {
-    //console.log(graph);
-    graph = json;
-    graph.index = [];
-    graph.indexSize = graph.nodes.length;
-    for (var i = 0; i < graph.nodes.length; ++i) {
-        graph.index[graph.nodes[i].id] = i;
+d3.json("/root", function(json) {
+    index = [];
+    nodes = json.nodes;
+    links = json.links;
+
+    indexSize = nodes.length;
+    for (var i = 0; i < nodes.length; ++i) {
+        index[nodes[i].id] = i;
     }
-    graph.links.forEach(function (link) {
-        link.source = graph.nodes[graph.index[link.source]];
-        link.target = graph.nodes[graph.index[link.target]];
+    links.forEach(function (link) {
+        link.source = nodes[index[link.source]];
+        link.target = nodes[index[link.target]];
         //console.log(link);
     });
-
-    force.nodes(graph.nodes)
-        .links(graph.links);
-
+    force.nodes(nodes)
+        .links(links);
     update();
 });
 
-
 function update() {
-    link = link.data(force.links());
-    link.enter().append("g").attr("class", "link");
-    link.append("line");
+
+    var link = svg.selectAll("line.link")
+        .data(links, function(d) { return d.source.id + "-" + d.target.id; });
+
+    link.enter().insert("line")
+        .attr("class", "link");
+
     link.exit().remove();
 
-    node = node.data(force.nodes());
-    node.enter().append("g")
+    var node = svg.selectAll("g.node")
+        .data(nodes, function(d) { return d.id;});
+
+    var nodeEnter = node.enter().append("g")
         .attr("class", "node")
         .on("click", showInfo)
         .on("dblclick", expand)
         .call(force.drag);
 
-    node.append("circle")
+    nodeEnter.append("circle")
         .attr("r", function(d) { return radius(d.size); })
         .style("fill", function(d) { return color(d.type); });
 
-    node.append("text")
+    nodeEnter.append("text")
         .attr("dy", ".35em")
         .attr("text-anchor", "middle")
-        .text(function(d) { return d.type; });
+        .text(function(d) { return d.id; });
+    
     node.exit().remove();
 
+    force.on("tick", function() {
+      link.attr("x1", function(d) { return d.source.x; })
+          .attr("y1", function(d) { return d.source.y; })
+          .attr("x2", function(d) { return d.target.x; })
+          .attr("y2", function(d) { return d.target.y; });
+
+      node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    });
 
     force.start();
-};
-
-
-function tick() {
-    link.selectAll("line")
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 }
 
 function showInfo(d) {
@@ -102,29 +101,25 @@ function showInfo(d) {
 
 function expand(d) {
     //alert("dblclick on " + d.id);
-    d3.json("/node-out-relations/" + d.id, function(subgraph) {
-        force.stop();
+    d3.json("/node-out-relations/" + d.id, function(graph) {
+        //force.stop();
 
-        console.log(subgraph.links.length);
+        console.log(graph.links.length);
 
-        var oldIndexSize = graph.indexSize;
-        subgraph.nodes.forEach(function(node) {
-            if (!graph.index[node.id]) {
-                graph.index[node.id] = graph.indexSize;
-                graph.indexSize++;
+        var oldIndexSize = indexSize;
+        graph.nodes.forEach(function(node) {
+            if (index[node.id] == null) {
+                nodes.push(node);
+                index[node.id] = indexSize;
+                indexSize++;
             }
         });
-        
-        subgraph.links.forEach(function (link) {
-            link.source = force.nodes()[graph.index[link.source]];
-            var targetIndex = graph.index[link.target];
-            if (targetIndex >= oldIndexSize) {
-                force.nodes().push(subgraph.nodes[targetIndex - oldIndexSize]);
-            }
-            link.target = force.nodes()[targetIndex];
-            force.links().push(link);
-            update();
+
+        graph.links.forEach(function (link) {
+            link.source = nodes[index[link.source]];
+            link.target = nodes[index[link.target]];
+            links.push(link);
         });
-        
+        update();        
     });    
 }
