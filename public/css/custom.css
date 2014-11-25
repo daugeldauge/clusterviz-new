@@ -1,18 +1,23 @@
 body {
-  padding-top: 90px;
+  padding-top: 60px;
+}
+
+.container {
+  width: 1366px;
+  max-width: none !important;
 }
 
 .container-custom {
-	padding-left: 50px;
-	padding-right: 50px;
+  padding-left: 50px;
+  padding-right: 50px;
 }
 
 .form-custom {
-	padding: 28px;
-	background-color: #eeeeee;
-	-webkit-border-radius: 6px;
- 	-moz-border-radius: 6px;
- 	border-radius: 6px;
+  padding: 28px;
+  background-color: #eeeeee;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
 }
 
 .center {
@@ -20,11 +25,11 @@ body {
 }
 
 .radios {
-	padding-top: 10px;
+  padding-top: 10px;
 }
 
 .continue {
-	padding-top: 0px;
+  padding-top: 0px;
 }
 
 .custom-text-input {
@@ -52,16 +57,39 @@ body {
 }
 
 .error-page {
-	color: red;
-	margin: 0 auto;
-	width: auto;
-	max-width: 680px;
-	padding: 0 15px;
+  color: red;
+  margin: 0 auto;
+  width: auto;
+  max-width: 680px;
+  padding: 0 15px;
 }
 
 
 #dot-info {
   margin-bottom: 0px;
+}
+
+
+.link line {
+  stroke: #696969;
+}
+
+.link line.separator {
+  stroke: #fff;
+}
+
+.node circle {
+  stroke: #000;
+}
+
+.node text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+
+#canvas {
+  height: 960px;
 }
 
 #logo {

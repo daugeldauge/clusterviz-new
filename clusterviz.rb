@@ -53,23 +53,17 @@ def get_levels(type, levels)
   rels
 end
 
-get '/nodes/:id' do
-  content_type :json
-  $nodes[params[:id].to_i].to_json
-end
-
-get '/neo' do
-  levels = get_levels('TYPE_0', 1)
-  rels = levels.reduce(:+)
-  links = rels.map do |rel|
+def get_links(rels)
+  rels.map do |rel|
     {
       source: get_id(rel['start']),
       target: get_id(rel['end']),
       type: rel['data']['type']
     }
   end
+end 
 
-  i = 0
+def get_graph(links)
   nodes = Set.new
   links.each do |link|
     nodes.add(link[:source])
@@ -81,20 +75,32 @@ get '/neo' do
     {id: node, size: 10, type: $nodes[node]['type']}
   end
   
+  {nodes: nodes, links: links}
+end
+
+get '/node-info/:id' do
   content_type :json
-  {nodes: nodes, links: links}.to_json
+  $nodes[params[:id].to_i].to_json
+end
+
+get '/node-out-relations/:id' do 
+  type = params[:type]
+  puts type
+  puts
+  type = 'TYPE_0' unless type
+
+  rels = $neo.get_node_relationships(params[:id], 'out', type)
+  get_graph(get_links(rels)).to_json
+end 
+
+get '/neo' do
+  levels = get_levels('TYPE_0', 0)
+  rels = levels.reduce(:+)
+  links = get_links(rels)
+
+  get_graph(links).to_json
 end
 
 get '/' do
-  clusters = %w(cheb lom lab)
-  dot_info = {}
-  clusters.each do |cluster|
-    file = cluster + '.dot'
-    stat = File.stat file
-    info = '<strong>Last updated:</strong> ' + stat.ctime.strftime('%d.%m.%Y %H:%M:%S') + '<br>'
-    info += '<strong>Size:</strong> ' + '%.2f' % [stat.size.to_f / (1024 * 1024)] + ' MiB<br>'
-    #info += "IP: 0.0.0.0"
-    dot_info[cluster.to_sym] = info
-  end
   erb :start
 end
