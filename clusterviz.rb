@@ -24,6 +24,7 @@ def get_all_nodes
 end
 
 configure do
+  set :port, 4568
   puts 'before starts'
   $neo = Neography::Rest.new('http://graphit.parallel.ru:7474')
   $nodes = get_all_nodes()
