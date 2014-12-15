@@ -114,6 +114,18 @@ get '/root' do
   {nodes: [{id: 10184, size: 15, type: "room"}], links: []}.to_json
 end
 
+get '/about' do
+  erb :about
+end
+
+get '/contact' do
+  erb :contact
+end
+
+not_found do
+  error_page '404'
+end
+
 get '/' do
   erb :start
 end
