@@ -124,5 +124,5 @@ function expand(d) {
             links.push(link);
         });
         update();        
-    });    
+    });
 }

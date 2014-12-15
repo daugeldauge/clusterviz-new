@@ -9,8 +9,16 @@ require 'set'
 
 def get_all_nodes
   nodes = []
+  types = $neo.list_relationship_types
   $neo.execute_query("MATCH (n) RETURN n")['data'].each do |node|
-    nodes[node[0]['metadata']['id']] = node[0]['data']
+    id = node[0]['metadata']['id']
+    nodes[id] = node[0]['data']
+    nodes[id]['out_relations_count'] = {}
+  end
+  types.each do |type|
+    $neo.execute_query("MATCH (n)-[:#{type}]-(a) RETURN id(n), count(a)")['data'].each do |pair|
+      nodes[pair[0]]['out_relations_count'][type] = pair[1]
+    end
   end
   nodes
 end
@@ -40,12 +48,12 @@ end
 def get_levels(type, levels)
   roots = get_roots(type)
   rels = []
-  rels[0] = roots.map{ |root| $neo.get_node_relationships(root, 'out', 'TYPE_0') }.reduce(:+)
+  rels[0] = roots.map{ |root| $neo.get_node_relationships(root, 'out', type) }.reduce(:+)
   (0...levels).each do |i|
     rels[i + 1] = []
     rels[i].each do |rel|
       target = get_id rel['end']
-      rels[i + 1] += $neo.get_node_relationships(target, 'out', 'TYPE_0')
+      rels[i + 1] += $neo.get_node_relationships(target, 'out', type)
       #puts "#{i + 1} #{rels[i + 1].size}"
     end
     #puts "#{i} #{rels[i].size}"
