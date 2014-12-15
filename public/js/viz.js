@@ -5,6 +5,9 @@ var svg = d3.select("#canvas").append("svg:svg")
     .attr("width", w)
     .attr("height", h);
 
+var svgLines = svg.append("g");
+var svgNodes = svg.append("g");
+
 var color = d3.scale.category20();
 
 var radius = d3.scale.sqrt()
@@ -43,7 +46,7 @@ d3.json("/root", function(json) {
 
 function update() {
 
-    var link = svg.selectAll("line.link")
+    var link = svgLines.selectAll("line.link")
         .data(links, function(d) { return d.source.id + "-" + d.target.id; });
 
     link.enter().insert("line")
@@ -51,7 +54,7 @@ function update() {
 
     link.exit().remove();
 
-    var node = svg.selectAll("g.node")
+    var node = svgNodes.selectAll("g.node")
         .data(nodes, function(d) { return d.id;});
 
     var nodeEnter = node.enter().append("g")
