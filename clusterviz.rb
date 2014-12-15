@@ -50,7 +50,7 @@ def get_levels(type, levels)
   roots = get_roots(type)
   rels = []
   rels[0] = roots.map{ |root| $neo.get_node_relationships(root, 'out', type) }.reduce(:+)
-  (0...levels).each do |i|
+  (0...levels - 1).each do |i|
     rels[i + 1] = []
     rels[i].each do |rel|
       target = get_id rel['end']
@@ -72,8 +72,8 @@ def get_links(rels)
   end
 end 
 
-def get_graph(links)
-  nodes = Set.new
+def get_graph(links, nodes = [])
+  nodes = Set.new nodes
   links.each do |link|
     nodes.add(link[:source])
     nodes.add(link[:target])
@@ -103,11 +103,16 @@ get '/node-out-relations/:id' do
 end 
 
 get '/neo' do
-  levels = get_levels('TYPE_0', 0)
-  rels = levels.reduce(:+)
-  links = get_links(rels)
-
-  get_graph(links).to_json
+  levels_number = params[:levels].to_i
+  if (levels_number == 0)
+    roots = get_roots(params[:type])
+    get_graph([], roots).to_json
+  else  
+    levels = get_levels(params[:type], levels_number)
+    rels = levels.reduce(:+)
+    links = get_links(rels)
+    get_graph(links).to_json
+  end
 end
 
 get '/root' do
