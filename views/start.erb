@@ -9,9 +9,9 @@
         <div class="form-group">
           <label class="control-label">Edge type</label>
             <select class="form-control" id="edge-type">
-              <% $neo.list_relationship_types.each do |type| %>
-                <option value="<%= type %>">
-                  <%= type %>
+              <% $neo_types.each do |name, type| %>
+                <option value="<%= name %>">
+                  <%= name %>
                 </option>
               <% end %>
             </select>

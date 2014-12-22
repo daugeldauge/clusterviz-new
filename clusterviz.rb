@@ -9,26 +9,54 @@ require 'set'
 
 def get_all_nodes
   nodes = []
+  
   types = $neo.list_relationship_types
   $neo.execute_query("MATCH (n) RETURN n")['data'].each do |node|
     id = node[0]['metadata']['id']
     nodes[id] = node[0]['data']
     nodes[id]['out_relations_count'] = {}
   end
+  
   types.each do |type|
     $neo.execute_query("MATCH (n)-[:#{type}]-(a) RETURN id(n), count(a)")['data'].each do |pair|
       nodes[pair[0]]['out_relations_count'][type] = pair[1]
     end
   end
+  
+  type_names = {}
+  types.each do |type|
+    nodes.each_with_index do |node, id|
+      if node['out_relations_count'][type]
+        query = "START n=node(#{id}) MATCH (n)-[r:#{type}]-(m) RETURN r.type"
+        type_names[type] = $neo.execute_query(query)['data'][0][0]
+        break
+      end
+    end
+  end
+
+  nodes.each do |node|
+    sum = 0
+    temp = {}
+    node['out_relations_count'].each do |k, v|
+      sum += v.to_i
+      temp[type_names[k]] = v 
+    end
+    temp['all'] = sum
+    node['out_relations_count'] = temp
+  end
+
+  $neo_types = {}
+  type_names.each{ |k, v| $neo_types[v] = k }
+
   nodes
 end
 
 configure do
   set :port, 4568
-  puts 'before starts'
+  puts 'configure() starts'
   $neo = Neography::Rest.new('http://graphit.parallel.ru:7474')
   $nodes = get_all_nodes()
-  puts 'before ends'
+  puts 'configure() ends'
 end
 
 def error_page msg
@@ -36,7 +64,7 @@ def error_page msg
 end
 
 def get_roots(type)
-  query = $neo.execute_query("MATCH (n) WHERE (n)-[:#{type}]->() AND NOT ()-[:#{type}]->(n) RETURN n")
+  query = $neo.execute_query("MATCH (n) WHERE (n)-[:#{$neo_types[type]}]->() AND NOT ()-[:#{$neo_types[type]}]->(n) RETURN n")
   query['data'].map do |node|
     node[0]['metadata']['id']
   end
@@ -49,6 +77,7 @@ end
 def get_levels(type, levels)
   roots = get_roots(type)
   rels = []
+  type = $neo_types[type]
   rels[0] = roots.map{ |root| $neo.get_node_relationships(root, 'out', type) }.reduce(:+)
   (0...levels - 1).each do |i|
     rels[i + 1] = []
@@ -94,11 +123,9 @@ end
 
 get '/node-out-relations/:id' do 
   type = params[:type]
-  puts type
-  puts
-  type = 'TYPE_0' unless type
+  type = 'contain' unless type
 
-  rels = $neo.get_node_relationships(params[:id], 'out', type)
+  rels = $neo.get_node_relationships(params[:id], 'out', $neo_types[type])
   get_graph(get_links(rels)).to_json
 end 
 
@@ -115,10 +142,6 @@ get '/neo' do
   end
 end
 
-get '/root' do
-  {nodes: [{id: 10184, size: 15, type: "room"}], links: []}.to_json
-end
-
 get '/about' do
   erb :about
 end
@@ -127,10 +150,10 @@ get '/contact' do
   erb :contact
 end
 
-not_found do
-  error_page '404'
-end
-
 get '/' do
   erb :start
+end
+
+not_found do
+  error_page '404'
 end
