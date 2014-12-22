@@ -22,21 +22,22 @@ $("form").submit(function draw() {
 
     var color = d3.scale.category20();
 
-    var radius = d3.scale.sqrt()
-        .range([0, 6]);
-
-    var r = radius(10) + 1;
+    var radius = parseInt($("#radius").val());
 
     var force = d3.layout.force()
-        .gravity(.05)
+        .gravity($("#gravity").val())
         .distance(40)
-        .charge(-400)
+        .charge($("#charge").val())
         .size([w, h]);
 
     var nodes,
         links, 
         index,
         indexSize;
+
+    $("#gravity") .change(function() { force.gravity(this.value);     update(); });
+    $("#charge")  .change(function() { force.charge(this.value);      update(); });
+    $("#radius")  .change(function() { radius = parseInt(this.value); update(); });
 
 
     d3.json("/neo?levels=" + levels + "&type=" + edgeType , function(json) {
@@ -78,8 +79,9 @@ $("form").submit(function draw() {
             .call(force.drag);
 
         nodeEnter.append("circle")
-            .attr("r", function(d) { return radius(d.size); })
             .style("fill", function(d) { return color(d.type); });
+
+        var circle = svg.selectAll("circle");   
 
         nodeEnter.append("text")
             .attr("dy", ".35em")
@@ -98,10 +100,12 @@ $("form").submit(function draw() {
         // });
 
         force.on("tick", function () {
+            circle.attr("r", radius);
+
             node.attr("transform", function(d) { 
                 return "translate(" + 
-                    (d.x = Math.max(r, Math.min(w - r, d.x))) + "," +
-                    (d.y = Math.max(r, Math.min(h - r, d.y))) + ")";
+                    (d.x = Math.max(radius + 1, Math.min(w - radius - 1, d.x))) + "," +
+                    (d.y = Math.max(radius + 1, Math.min(h - radius - 1, d.y))) + ")";
             });
 
             link.attr("x1", function(d) { return d.source.x; })

@@ -7,53 +7,8 @@ body {
   max-width: none !important;
 }
 
-.container-custom {
-  padding-left: 50px;
-  padding-right: 50px;
-}
-
-.form-custom {
-  padding: 28px;
-  background-color: #eeeeee;
-  -webkit-border-radius: 6px;
-  -moz-border-radius: 6px;
-  border-radius: 6px;
-}
-
 .center {
     text-align: center;
-}
-
-.radios {
-  padding-top: 10px;
-}
-
-.continue {
-  padding-top: 0px;
-}
-
-.custom-text-input {
-  padding-top: 10px;
-  max-width: 350px;
-  width: 50%;
-  margin: 0 auto;
-}
-
-.checkbox-custom {
-  min-height:20px;
-  margin-top:10px;
-  margin-bottom:10px;
-  padding-left:20px;
-}
-
-.checkbox-custom label {
-  display:inline;
-  font-weight:400;
-  cursor:pointer
-}
-
-.checkbox-custom input {
-  vertical-align: baseline;
 }
 
 .error-page {
@@ -84,6 +39,9 @@ line {
   pointer-events: none;
 }
 
+#draw-button {
+  margin-bottom: 20px;
+}
 
 #canvas {
   height: 960px;
