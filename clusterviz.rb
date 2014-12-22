@@ -18,7 +18,7 @@ def get_all_nodes
   end
   
   types.each do |type|
-    $neo.execute_query("MATCH (n)-[:#{type}]-(a) RETURN id(n), count(a)")['data'].each do |pair|
+    $neo.execute_query("MATCH (n)-[:#{type}]->(a) RETURN id(n), count(a)")['data'].each do |pair|
       nodes[pair[0]]['out_relations_count'][type] = pair[1]
     end
   end
@@ -27,7 +27,7 @@ def get_all_nodes
   types.each do |type|
     nodes.each_with_index do |node, id|
       if node['out_relations_count'][type]
-        query = "START n=node(#{id}) MATCH (n)-[r:#{type}]-(m) RETURN r.type"
+        query = "START n=node(#{id}) MATCH (n)-[r:#{type}]->(m) RETURN r.type"
         type_names[type] = $neo.execute_query(query)['data'][0][0]
         break
       end

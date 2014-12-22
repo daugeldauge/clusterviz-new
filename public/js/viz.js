@@ -122,10 +122,22 @@ $("form").submit(function draw() {
                 .append("<tr><td>id</td><td>" + d.id +"</td></tr>");
 
             for (key in nodeInfo) {
-                table.append("<tr><td>" + key + "</td><td>" + nodeInfo[key] +"</td></tr>");
+                table.append("<tr><td>" + key + "</td><td>" + toCell(nodeInfo[key]) +"</td></tr>");
             }
             table.append("</table>");
         });
+    }
+
+    function toCell(x) {
+        if ($.isPlainObject(x)) {
+            cell = ""
+            for (key in x) {
+                cell += "<b>" + key + ":</b>&nbsp;" + toCell(x[key]) + "<br>";
+            }
+            return cell;
+        } else {
+            return x;
+        }
     }
 
     function expand(d) {
