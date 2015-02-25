@@ -8,53 +8,37 @@ require 'neography'
 require 'set'
 
 def get_all_nodes
-  nodes = []
+  nodes = {}
   
-  types = $neo.list_relationship_types
-  $neo.execute_query("MATCH (n) RETURN n")['data'].each do |node|
+  $neo_types = ["contain"]
+
+  $neo.execute_query("MATCH (n:OBJECT) RETURN n")['data'].each do |node|
     id = node[0]['metadata']['id']
     nodes[id] = node[0]['data']
-    nodes[id]['out_relations_count'] = {}
   end
   
-  types.each do |type|
-    $neo.execute_query("MATCH (n)-[:#{type}]->(a) RETURN id(n), count(a)")['data'].each do |pair|
-      nodes[pair[0]]['out_relations_count'][type] = pair[1]
-    end
-  end
-  
-  type_names = {}
-  types.each do |type|
-    nodes.each_with_index do |node, id|
-      if node['out_relations_count'][type]
-        query = "START n=node(#{id}) MATCH (n)-[r:#{type}]->(m) RETURN r.type"
-        type_names[type] = $neo.execute_query(query)['data'][0][0]
-        break
-      end
-    end
+  $neo.execute_query("MATCH (n:OBJECT)-[rel:LINK]->(a:OBJECT) RETURN id(n), count(a)")['data'].each do |pair|
+    nodes[pair[0]]['out_relations_count'] = pair[1]
   end
 
-  nodes.each do |node|
-    sum = 0
-    temp = {}
-    node['out_relations_count'].each do |k, v|
-      sum += v.to_i
-      temp[type_names[k]] = v 
-    end
-    temp['all'] = sum
-    node['out_relations_count'] = temp
-  end
+  # nodes.each do |node|
+  #   sum = 0
+  #   node['out_relations_count'].each do |k, v|
+  #     sum += v.to_i
+  #   end
+  #   node['out_relations_count']['all'] = sum
+  # end
 
-  $neo_types = {}
-  type_names.each{ |k, v| $neo_types[v] = k }
-
+  # $neo_types = types
   nodes
 end
 
 configure do
   set :port, 4568
   puts 'configure() starts'
+  $neo = {}
   $neo = Neography::Rest.new('http://graphit.parallel.ru:7474')
+
   $nodes = get_all_nodes()
   puts 'configure() ends'
 end
@@ -63,27 +47,35 @@ def error_page msg
   erb :error, :locals => {:msg => msg}
 end
 
-def get_roots(type)
-  query = $neo.execute_query("MATCH (n) WHERE (n)-[:#{$neo_types[type]}]->() AND NOT ()-[:#{$neo_types[type]}]->(n) RETURN n")
-  query['data'].map do |node|
-    node[0]['metadata']['id']
+def get_id(url)
+  url.gsub(/.*\D/, '').to_i
+end
+
+def get_out_relationships(id, type)
+  $neo.execute_query("START n=node(#{id}) MATCH (n)-[rel:LINK {type: '#{type}'}]->() RETURN rel")['data'].map do |rel|
+    {
+      source: get_id(rel[0]["start"]),
+      target: get_id(rel[0]["end"])
+    }
   end
 end
 
-def get_id(url)
-  url.gsub(/.*\D/, '').to_i
+def get_roots(type)
+  query = "MATCH (n:OBJECT) WHERE (n)-[:LINK {type: '#{type}'}]->() AND NOT ()-[:LINK {type: '#{type}'}]->(n) RETURN n"
+  $neo.execute_query(query)['data'].map do |node|
+    node[0]['metadata']['id']
+  end
 end
 
 def get_levels(type, levels)
   roots = get_roots(type)
   rels = []
-  type = $neo_types[type]
-  rels[0] = roots.map{ |root| $neo.get_node_relationships(root, 'out', type) }.reduce(:+)
+  
+  rels[0] = roots.map{ |root| get_out_relationships(root, type) }.reduce(:+)
   (0...levels - 1).each do |i|
     rels[i + 1] = []
     rels[i].each do |rel|
-      target = get_id rel['end']
-      rels[i + 1] += $neo.get_node_relationships(target, 'out', type)
+      rels[i + 1] += get_out_relationships(rel[:target], type)
       #puts "#{i + 1} #{rels[i + 1].size}"
     end
     #puts "#{i} #{rels[i].size}"
@@ -125,8 +117,8 @@ get '/node-out-relations/:id' do
   type = params[:type]
   type = 'contain' unless type
 
-  rels = $neo.get_node_relationships(params[:id], 'out', $neo_types[type])
-  get_graph(get_links(rels)).to_json
+  rels = get_out_relationships(params[:id], type)
+  get_graph(rels).to_json
 end 
 
 get '/neo' do
@@ -137,7 +129,6 @@ get '/neo' do
   else  
     levels = get_levels(params[:type], levels_number)
     rels = levels.reduce(:+)
-    links = get_links(rels)
     get_graph(links).to_json
   end
 end
