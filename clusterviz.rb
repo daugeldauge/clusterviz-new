@@ -10,7 +10,7 @@ require 'set'
 def get_all_nodes
   nodes = {}
   
-  $neo_types = ["contain"]
+  $neo_types = $neo.execute_query("MATCH (:OBJECT)-[r:LINK]->(:OBJECT) RETURN COLLECT(distinct r.type)")["data"][0][0]
 
   $neo.execute_query("MATCH (n:OBJECT) RETURN n")['data'].each do |node|
     id = node[0]['metadata']['id']
