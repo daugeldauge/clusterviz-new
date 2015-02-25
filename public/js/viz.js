@@ -1,6 +1,7 @@
 $("form").submit(function draw() {
     $("svg").remove();
 
+    var cluster = $("#cluster").val();
     var edgeType = $("#edge-type").val();
     var levels = $("#levels").val();
 
@@ -40,7 +41,7 @@ $("form").submit(function draw() {
     $("#radius")  .change(function() { radius = parseInt(this.value); update(); });
 
 
-    d3.json("/neo?levels=" + levels + "&type=" + edgeType , function(json) {
+    d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster , function(json) {
         index = [];
         nodes = json.nodes;
         links = json.links;
@@ -86,7 +87,7 @@ $("form").submit(function draw() {
         nodeEnter.append("text")
             .attr("dy", ".35em")
             .attr("text-anchor", "middle")
-            .text(function(d) { return d.id; });
+            .text(function(d) { return d.type; });
         
         node.exit().remove();
 
@@ -117,7 +118,7 @@ $("form").submit(function draw() {
     }
 
     function showInfo(d) {
-        d3.json("/node-info/" + d.id, function(nodeInfo) {
+        d3.json("/node-info/" + d.id + "?cluster=" + cluster, function(nodeInfo) {
             var table = $("#node-info")
                 .empty()
                 .css("text-align", "left")
@@ -146,7 +147,7 @@ $("form").submit(function draw() {
 
     function expand(d) {
         //alert("dblclick on " + d.id);
-        d3.json("/node-out-relations/" + d.id + "?type=" + edgeType, function(graph) {
+        d3.json("/node-out-relations/" + d.id + "?type=" + edgeType + "&cluster=" + cluster, function(graph) {
             //force.stop();
 
             console.log(graph.links.length);
