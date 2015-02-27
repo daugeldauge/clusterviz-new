@@ -36,6 +36,7 @@ end
 configure do
   set :port, 4568
   puts 'configure() starts'
+  start_time = Time.now
   $neo = {}
   $neo[:cheb] = Neography::Rest.new('http://graphit.parallel.ru:7474')
   $neo[:lom] = Neography::Rest.new('http://stat1.lom.parallel.ru:7474')
@@ -43,7 +44,7 @@ configure do
   $nodes = {}
   $nodes[:cheb] = get_all_nodes(:cheb)
   $nodes[:lom] = get_all_nodes(:lom)
-  puts 'configure() ends'
+  puts "configure() ends in #{Time.now - start_time}s"
 end
 
 def error_page msg
