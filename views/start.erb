@@ -19,12 +19,13 @@
         </div>
         <div class="form-group">
           <label class="control-label">Edge type</label>
-          <select class="form-control" id="edge-type">
-            <option value="contain">contain</option>
-            <option value="power">power</option>
-            <option value="chill">chill</option>
-            <option value="ib">ib</option>
-          </select>
+            <select class="form-control" id="edge-type">
+              <% ($types[:lom] | $types[:cheb]).each do |name| %>
+                <option value="<%= name %>">
+                  <%= name %>
+                </option>
+              <% end %>
+            </select>
           </div>
           <button type="submit" class="btn btn-primary" id="draw-button">Draw</button>
       </form>
@@ -44,7 +45,7 @@
             </div>
             <div class="form-group">
               <label class="control-label">Radius</label>
-              <input type="text" class="form-control" id="radius" value="18">
+              <input type="text" class="form-control" id="radius" value="10">
             </div>
           </form>
         </div>

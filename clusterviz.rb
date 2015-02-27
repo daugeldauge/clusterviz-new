@@ -9,27 +9,24 @@ require 'set'
 
 def get_all_nodes(cluster)
   nodes = {}
-  $types = {}
   $types[cluster] = $neo[cluster].execute_query("MATCH (:OBJECT)-[r:LINK]->(:OBJECT) RETURN COLLECT(distinct r.type)")["data"][0][0]
 
   $neo[cluster].execute_query("MATCH (n:OBJECT) RETURN n")['data'].each do |node|
     id = node[0]['metadata']['id']
     nodes[id] = node[0]['data']
+    nodes[id]['out_rels'] = {} 
   end
   
-  $neo[cluster].execute_query("MATCH (n:OBJECT)-[rel:LINK]->(a:OBJECT) RETURN id(n), count(a)")['data'].each do |pair|
-    nodes[pair[0]]['out_relations_count'] = pair[1]
+  $types[cluster].each do |type| 
+    $neo[cluster].execute_query("MATCH (n:OBJECT)-[rel:LINK {type: '#{type}'}]->(a:OBJECT) RETURN id(n), count(a)")['data'].each do |pair|
+      nodes[pair[0]]['out_rels'][type] = pair[1].to_i
+    end
   end
 
-  # nodes.each do |node|
-  #   sum = 0
-  #   node['out_relations_count'].each do |k, v|
-  #     sum += v.to_i
-  #   end
-  #   node['out_relations_count']['all'] = sum
+  # nodes.each_value do |node|
+  #   node['out_rels']['all'] = node['out_rels'].values.reduce(:+).to_i
   # end
 
-  # $types = types
   nodes
 end
 
@@ -42,8 +39,10 @@ configure do
   $neo[:lom] = Neography::Rest.new('http://stat1.lom.parallel.ru:7474')
 
   $nodes = {}
+  $types = {}
   $nodes[:cheb] = get_all_nodes(:cheb)
   $nodes[:lom] = get_all_nodes(:lom)
+
   puts "configure() ends in #{Time.now - start_time}s"
 end
 
@@ -97,7 +96,7 @@ def get_links(rels)
   end
 end 
 
-def get_graph(cluster, links, nodes = [])
+def get_graph(cluster, links, type, nodes = [])
   nodes = Set.new nodes
   links.each do |link|
     nodes.add(link[:source])
@@ -106,7 +105,7 @@ def get_graph(cluster, links, nodes = [])
 
   nodes = nodes.to_a
   nodes.map! do |node|
-    {id: node, size: 10, type: $nodes[cluster][node]['type']}
+    {id: node, size: $nodes[cluster][node]['out_rels'][type].to_i, type: $nodes[cluster][node]['type']}
   end
   
   {nodes: nodes, links: links}
@@ -123,19 +122,20 @@ get '/node-out-relations/:id' do
   type = 'contain' unless type
 
   rels = get_out_relationships(cluster, params[:id], type)
-  get_graph(cluster, rels).to_json
+  get_graph(cluster, rels, type).to_json
 end 
 
 get '/neo' do
+  type = params[:type]
   cluster = params[:cluster].to_sym
   levels_number = params[:levels].to_i
   if (levels_number == 0)
-    roots = get_roots(cluster, params[:type])
-    get_graph(cluster, [], roots).to_json
+    roots = get_roots(cluster, type)
+    get_graph(cluster, [], type, roots).to_json
   else  
-    levels = get_levels(cluster, params[:type], levels_number)
+    levels = get_levels(cluster, type, levels_number)
     rels = levels.reduce(:+)
-    get_graph(cluster, rels).to_json
+    get_graph(cluster, rels, type).to_json
   end
 end
 

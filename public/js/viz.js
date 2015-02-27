@@ -22,6 +22,7 @@ $("form").submit(function draw() {
     var svgNodes = svg.append("g");
 
     var color = d3.scale.category20();
+    var size = d3.scale.log();
 
     var radius = parseInt($("#radius").val());
 
@@ -80,7 +81,8 @@ $("form").submit(function draw() {
             .call(force.drag);
 
         nodeEnter.append("circle")
-            .style("fill", function(d) { return color(d.type); });
+            .style("fill", function(d) { return color(d.type); })
+            .style("stroke", function(d) { return d.size? "green": "red" })
 
         var circle = svg.selectAll("circle");   
 
@@ -101,7 +103,9 @@ $("form").submit(function draw() {
         // });
 
         force.on("tick", function () {
-            circle.attr("r", radius);
+            circle.attr("r", function(d) {
+                return d.size / 1.5 + radius;
+            });
 
             node.attr("transform", function(d) { 
                 return "translate(" + 
