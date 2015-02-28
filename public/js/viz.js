@@ -104,13 +104,13 @@ $("form").submit(function draw() {
 
         force.on("tick", function () {
             circle.attr("r", function(d) {
-                return d.size / 1.5 + radius;
+                return 3 * Math.log(d.size + 1) + radius;
             });
 
             node.attr("transform", function(d) { 
                 return "translate(" + 
-                    (d.x = Math.max(radius + 1, Math.min(w - radius - 1, d.x))) + "," +
-                    (d.y = Math.max(radius + 1, Math.min(h - radius - 1, d.y))) + ")";
+                    (d.x = Math.max(0, Math.min(w, d.x))) + "," +
+                    (d.y = Math.max(0, Math.min(h, d.y))) + ")";
             });
 
             link.attr("x1", function(d) { return d.source.x; })
