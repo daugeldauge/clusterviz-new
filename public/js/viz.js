@@ -77,7 +77,7 @@ $("form").submit(function draw() {
         var nodeEnter = node.enter().append("g")
             .attr("class", "node")
             .on("click", showInfo)
-            .on("dblclick", expand)
+            .on("dblclick", dblclick)
             .call(force.drag);
 
         nodeEnter.append("circle")
@@ -139,13 +139,40 @@ $("form").submit(function draw() {
 
     function toCell(x) {
         if ($.isPlainObject(x)) {
-            cell = ""
+            var cell = ""
             for (key in x) {
                 cell += "<b>" + key + ":</b>&nbsp;" + toCell(x[key]) + "<br>";
             }
             return cell;
         } else {
             return x;
+        }
+    }
+
+    function getNumberOfChildren(d) {
+        var n = 0;
+        links.forEach(function (link) {
+            if (link.source === d) {
+                ++n;
+            }
+        });
+        return n;
+    }
+
+    function dblclick(d) {
+        if (d.size == getNumberOfChildren(d)) {
+            var linksToRemove = collapse(d);
+            linksToRemove.sort(function(a, b) {
+                return a - b;
+            });
+
+            for (var i = linksToRemove.length - 1; i >=0; --i) {
+                links.splice(linksToRemove[i], 1);
+            }
+
+            update();
+        } else {
+            expand(d);
         }
     }
 
@@ -170,7 +197,28 @@ $("form").submit(function draw() {
                 link.target = nodes[index[link.target]];
                 links.push(link);
             });
-            update();        
+            update();
         });
+    }
+
+    function collapse(d) {
+        if (d.size == 0) {
+            return [];
+        }
+        var linksToRemove = [];
+        links.forEach(function (link, index) {
+            if (link.source === d) {
+                linksToRemove = linksToRemove.concat(collapse(link.target));
+                linksToRemove.push(index);
+                remove(link.target);
+            }
+        });
+        return linksToRemove;
+    }
+
+    function remove(d) {
+        nodes.splice(nodes.indexOf(d), 1);
+        delete index[d.id];
+        --indexSize;
     }
 });
