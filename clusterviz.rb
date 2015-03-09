@@ -1,141 +1,146 @@
-require 'open3'
-require 'json'
 require 'sinatra'
+require "sinatra/reloader" if development?
 require 'sinatra/contrib'
-require 'sinatra/base'
-require 'timeout'
+
+require 'json'
 require 'neography'
 require 'set'
 
-def get_all_nodes(cluster)
-  nodes = {}
-  $types[cluster] = $neo[cluster].execute_query("MATCH (:OBJECT)-[r:LINK]->(:OBJECT) RETURN COLLECT(distinct r.type)")["data"][0][0]
+class Cluster
+  attr_reader :nodes, :types
 
-  $neo[cluster].execute_query("MATCH (n:OBJECT) RETURN n")['data'].each do |node|
-    id = node[0]['metadata']['id']
-    nodes[id] = node[0]['data']
-    nodes[id]['out_rels'] = {} 
+  def initialize(url)
+    @neo = Neography::Rest.new(url)
+    get_all_nodes
   end
-  
-  $types[cluster].each do |type| 
-    $neo[cluster].execute_query("MATCH (n:OBJECT)-[rel:LINK {type: '#{type}'}]->(a:OBJECT) RETURN id(n), count(a)")['data'].each do |pair|
-      nodes[pair[0]]['out_rels'][type] = pair[1].to_i
+ 
+  def get_all_nodes
+    @nodes = {}
+    @types= @neo.execute_query("MATCH (:OBJECT)-[r:LINK]->(:OBJECT) RETURN COLLECT(distinct r.type)")["data"][0][0]
+
+    @neo.execute_query("MATCH (n:OBJECT) RETURN n")['data'].each do |node|
+      id = node[0]['metadata']['id']
+      @nodes[id] = node[0]['data']
+      @nodes[id]['out_rels'] = {} 
+    end
+    
+    @types.each do |type| 
+      @neo.execute_query("MATCH (n:OBJECT)-[rel:LINK {type: '#{type}'}]->(a:OBJECT) RETURN id(n), count(a)")['data'].each do |pair|
+        nodes[pair[0]]['out_rels'][type] = pair[1].to_i
+      end
+    end
+
+    # nodes.each_value do |node|
+    #   node['out_rels']['all'] = node['out_rels'].values.reduce(:+).to_i
+    # end
+  end
+
+  def get_id(url)
+    url.gsub(/.*\D/, '').to_i
+  end
+
+  def get_out_relationships(id, type)
+    @neo.execute_query("START n=node(#{id}) MATCH (n)-[rel:LINK {type: '#{type}'}]->() RETURN rel")['data'].map do |rel|
+      {
+        source: get_id(rel[0]["start"]),
+        target: get_id(rel[0]["end"])
+      }
     end
   end
 
-  # nodes.each_value do |node|
-  #   node['out_rels']['all'] = node['out_rels'].values.reduce(:+).to_i
-  # end
+  def get_roots(type)
+    query = "MATCH (n:OBJECT) WHERE (n)-[:LINK {type: '#{type}'}]->() AND NOT ()-[:LINK {type: '#{type}'}]->(n) RETURN n"
+    @neo.execute_query(query)['data'].map do |node|
+      node[0]['metadata']['id']
+    end
+  end
 
-  nodes
+  def get_levels(type, levels)
+    roots = get_roots(type)
+    rels = []
+    
+    rels[0] = roots.map{ |root| get_out_relationships(cluster, root, type) }.reduce(:+)
+    (0...levels - 1).each do |i|
+      rels[i + 1] = []
+      rels[i].each do |rel|
+        rels[i + 1] += get_out_relationships(cluster, rel[:target], type)
+        #puts "#{i + 1} #{rels[i + 1].size}"
+      end
+      #puts "#{i} #{rels[i].size}"
+    end
+    rels
+  end
+
+  def get_links(rels)
+    rels.map do |rel|
+      {
+        source: get_id(rel['start']),
+        target: get_id(rel['end']),
+        type: rel['data']['type']
+      }
+    end
+  end 
+
+  def get_graph(links, type, nodes = [])
+    nodes = Set.new nodes
+    links.each do |link|
+      nodes.add(link[:source])
+      nodes.add(link[:target])
+    end
+
+    nodes = nodes.to_a
+    nodes.map! do |node|
+      {id: node, size: @nodes[node]['out_rels'][type].to_i, type: @nodes[node]['type']}
+    end
+    
+    {nodes: nodes, links: links}
+  end
 end
 
 configure do
   set :port, 4568
   puts 'configure() starts'
   start_time = Time.now
-  $neo = {}
-  $neo[:cheb] = Neography::Rest.new('http://graphit.parallel.ru:7474')
-  $neo[:lom] = Neography::Rest.new('http://stat1.lom.parallel.ru:7474')
-
-  $nodes = {}
-  $types = {}
-  $nodes[:cheb] = get_all_nodes(:cheb)
-  $nodes[:lom] = get_all_nodes(:lom)
+  
+  set :clusters, { 
+    cheb: Cluster.new('http://graphit.parallel.ru:7474'),
+    lom:  Cluster.new('http://stat1.lom.parallel.ru:7474')
+  }
 
   puts "configure() ends in #{Time.now - start_time}s"
+end
+
+before do
+  @cluster = settings.clusters[params[:cluster].to_sym] if params[:cluster]
 end
 
 def error_page msg
   erb :error, :locals => {:msg => msg}
 end
 
-def get_id(url)
-  url.gsub(/.*\D/, '').to_i
-end
-
-def get_out_relationships(cluster, id, type)
-  $neo[cluster].execute_query("START n=node(#{id}) MATCH (n)-[rel:LINK {type: '#{type}'}]->() RETURN rel")['data'].map do |rel|
-    {
-      source: get_id(rel[0]["start"]),
-      target: get_id(rel[0]["end"])
-    }
-  end
-end
-
-def get_roots(cluster, type)
-  query = "MATCH (n:OBJECT) WHERE (n)-[:LINK {type: '#{type}'}]->() AND NOT ()-[:LINK {type: '#{type}'}]->(n) RETURN n"
-  $neo[cluster].execute_query(query)['data'].map do |node|
-    node[0]['metadata']['id']
-  end
-end
-
-def get_levels(cluster, type, levels)
-  roots = get_roots(cluster, type)
-  rels = []
-  
-  rels[0] = roots.map{ |root| get_out_relationships(cluster, root, type) }.reduce(:+)
-  (0...levels - 1).each do |i|
-    rels[i + 1] = []
-    rels[i].each do |rel|
-      rels[i + 1] += get_out_relationships(cluster, rel[:target], type)
-      #puts "#{i + 1} #{rels[i + 1].size}"
-    end
-    #puts "#{i} #{rels[i].size}"
-  end
-  rels
-end
-
-def get_links(rels)
-  rels.map do |rel|
-    {
-      source: get_id(rel['start']),
-      target: get_id(rel['end']),
-      type: rel['data']['type']
-    }
-  end
-end 
-
-def get_graph(cluster, links, type, nodes = [])
-  nodes = Set.new nodes
-  links.each do |link|
-    nodes.add(link[:source])
-    nodes.add(link[:target])
-  end
-
-  nodes = nodes.to_a
-  nodes.map! do |node|
-    {id: node, size: $nodes[cluster][node]['out_rels'][type].to_i, type: $nodes[cluster][node]['type']}
-  end
-  
-  {nodes: nodes, links: links}
-end
 
 get '/node-info/:id' do
-  content_type :json
-  $nodes[params[:cluster].to_sym][params[:id].to_i].to_json
+  @cluster.nodes[params[:id].to_i].to_json
 end
 
 get '/node-out-relations/:id' do 
   type = params[:type]
-  cluster = params[:cluster].to_sym
-  type = 'contain' unless type
-
-  rels = get_out_relationships(cluster, params[:id], type)
-  get_graph(cluster, rels, type).to_json
+  
+  rels = @cluster.get_out_relationships(params[:id], type)
+  @cluster.get_graph(rels, type).to_json
 end 
 
 get '/neo' do
   type = params[:type]
-  cluster = params[:cluster].to_sym
-  levels_number = params[:levels].to_i
-  if (levels_number == 0)
-    roots = get_roots(cluster, type)
-    get_graph(cluster, [], type, roots).to_json
-  else  
-    levels = get_levels(cluster, type, levels_number)
+  
+  level_number = params[:levels].to_i
+  if (level_number == 0)
+    roots = @cluster.get_roots(type)
+    @cluster.get_graph([], type, roots).to_json
+  else
+    levels = @cluster.get_levels(type, levels_number)
     rels = levels.reduce(:+)
-    get_graph(cluster, rels, type).to_json
+    @cluster.get_graph(rels, type).to_json
   end
 end
 

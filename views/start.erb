@@ -20,7 +20,7 @@
         <div class="form-group">
           <label class="control-label">Edge type</label>
             <select class="form-control" id="edge-type">
-              <% ($types[:lom] | $types[:cheb]).each do |name| %>
+              <% settings.clusters.map{|k, v| v.types}.reduce(:|).each do |name| %>
                 <option value="<%= name %>">
                   <%= name %>
                 </option>
