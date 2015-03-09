@@ -54,7 +54,6 @@ $("form").submit(function draw() {
         links.forEach(function (link) {
             link.source = nodes[index[link.source]];
             link.target = nodes[index[link.target]];
-            //console.log(link);
         });
         force.nodes(nodes)
             .links(links);
@@ -117,7 +116,9 @@ $("form").submit(function draw() {
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
                 .attr("y2", function(d) { return d.target.y; });
-        });       
+        });
+
+        topologicalSort();
         force.start();
     }
 
@@ -179,9 +180,6 @@ $("form").submit(function draw() {
     function expand(d) {
         //alert("dblclick on " + d.id);
         d3.json("/node-out-relations/" + d.id + "?type=" + edgeType + "&cluster=" + cluster, function(graph) {
-            //force.stop();
-
-            console.log(graph.links.length);
 
             var oldIndexSize = indexSize;
             graph.nodes.forEach(function(node) {
@@ -220,5 +218,32 @@ $("form").submit(function draw() {
         nodes.splice(nodes.indexOf(d), 1);
         delete index[d.id];
         --indexSize;
+    }
+
+    function topologicalSort() {
+        var currentLevel = 0;
+
+        nodes.forEach(function(node) { node.level = undefined });
+
+        do {
+            // create array of zeros
+            var nodeDegrees = Array.apply(null, new Array(indexSize)).map(Number.prototype.valueOf, 0); 
+            
+            links.forEach(function(link) { 
+                if (link.source.level == undefined && link.target.level == undefined) {
+                    nodeDegrees[index[link.target.id]] += 1;
+                }
+            });
+
+            var numberOfNullDegreeNodes = 0;
+            nodeDegrees.forEach(function(degree, index) {
+                if (nodes[index].level == undefined && degree == 0) {
+                    ++numberOfNullDegreeNodes;
+                    nodes[index].level = currentLevel;
+                }
+            });
+
+            ++currentLevel;
+        } while(numberOfNullDegreeNodes != 0)
     }
 });
