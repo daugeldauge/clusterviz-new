@@ -118,7 +118,7 @@ $("form").submit(function draw() {
                 .attr("y2", function(d) { return d.target.y; });
         });
 
-        topologicalSort();
+        //topologicalSort();
         force.start();
     }
 
