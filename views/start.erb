@@ -1,16 +1,15 @@
 <div class="container">
   <div class="row">
     <div class="col-lg-2">
-      <form class="form" onsubmit="return false;">
+      <form class="form" id="draw-form" onsubmit="return false;">
         <div class="form-group">
           <label class="control-label">Cluster</label>
           <select class="form-control" id="cluster">
-            <option value="cheb">
-              Chebyshev
-            </option>
-            <option value="lom">
-              Lomonosov
-            </option>
+            <% settings.clusters.each_key do |name| %>
+              <option value="<%= name %>">
+                <%= name %>
+              </option>
+            <% end %>
           </select>
           </div>
         <div class="form-group">
@@ -19,15 +18,15 @@
         </div>
         <div class="form-group">
           <label class="control-label">Edge type</label>
-            <select class="form-control" id="edge-type">
-              <% settings.clusters.map{|k, v| v.types}.reduce(:|).each do |name| %>
-                <option value="<%= name %>">
-                  <%= name %>
-                </option>
-              <% end %>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary" id="draw-button">Draw</button>
+          <select class="form-control" id="edge-type">
+            <% settings.clusters.map{|k, v| v.types}.reduce(:|).each do |name| %>
+              <option value="<%= name %>">
+                <%= name %>
+              </option>
+            <% end %>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" id="draw-button">Draw</button>
       </form>
       <div class="panel panel-info">
         <div class="panel-heading">
@@ -50,6 +49,9 @@
           </form>
         </div>
       </div>
+      <button class="btn btn-default" data-toggle="modal" data-target="#add-modal">
+        Add new cluster
+      </button>
     </div>
     <div class="col-lg-8">
       <div id="canvas">
@@ -61,5 +63,36 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="add-modal" tabindex="-1" role="dialog" aria-labelledby="add-modal-label" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Add new cluster</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form" id="add-form" action="/add-cluster">
+          <div class="form-group">
+            <label for="name" class="control-label">Name:</label>
+            <input type="text" class="form-control" name="name">
+          </div>
+          <div class="form-group">
+            <label for="url" class="control-label">URL:</label>
+            <input type="text" class="form-control" name="url">
+          </div>
+        </form>     
+        <div class="alert alert-danger" role="alert" style="display: none;" id="error-msg">
+          <strong>Oh snap!</strong> Change a few things up and try submitting again.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <input class="btn btn-primary" type="submit" value="Add" id="add-button">
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/js/d3.v3.min.js"></script>
 <script src="/js/viz.js"></script>

@@ -1,4 +1,4 @@
-$("form").submit(function draw() {
+$("#draw-form").submit(function draw() {
     $("svg").remove();
 
     var cluster = $("#cluster").val();
@@ -246,4 +246,22 @@ $("form").submit(function draw() {
             ++currentLevel;
         } while(numberOfNullDegreeNodes != 0)
     }
+});
+
+$("#add-button").click(function () {
+    $("#error-msg").toggle();
+    $.ajax({
+        type: "GET",
+        url: "/add-cluster",
+        data: $("#add-form").serialize(),
+        success: function(){
+            $("#add-modal").modal("hide");
+            location.reload();  
+        },
+        error: function(){
+            $("#error-msg").show();
+            $("add-button").prop("disabled", true);
+        }
+    });
+    $("add-button").prop("disabled", true);
 });

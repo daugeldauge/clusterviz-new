@@ -7,14 +7,15 @@ require 'neography'
 require 'set'
 
 class Cluster
-  attr_reader :nodes, :types
+  attr_reader :nodes, :types, :url, :last_update
 
   def initialize(url)
+    @url = url
     @neo = Neography::Rest.new(url)
-    get_all_nodes
+    update
   end
  
-  def get_all_nodes
+  def update
     @nodes = {}
     @types= @neo.execute_query("MATCH (:OBJECT)-[r:LINK]->(:OBJECT) RETURN COLLECT(distinct r.type)")["data"][0][0]
 
@@ -33,6 +34,7 @@ class Cluster
     # nodes.each_value do |node|
     #   node['out_rels']['all'] = node['out_rels'].values.reduce(:+).to_i
     # end
+    @last_update = Time.now
   end
 
   def get_id(url)
@@ -103,21 +105,25 @@ configure do
   start_time = Time.now
   
   set :clusters, { 
-    cheb: Cluster.new('http://graphit.parallel.ru:7474'),
-    lom:  Cluster.new('http://stat1.lom.parallel.ru:7474')
+    'Chebyshev' => Cluster.new('http://graphit.parallel.ru:7474'),
+    #'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
   }
 
   puts "configure() ends in #{Time.now - start_time}s"
 end
 
 before do
-  @cluster = settings.clusters[params[:cluster].to_sym] if params[:cluster]
+  @cluster = settings.clusters[params[:cluster]] if params[:cluster]
 end
 
 def error_page msg
   erb :error, :locals => {:msg => msg}
 end
 
+get '/add-cluster' do
+  settings.clusters[params[:name]] = Cluster.new(params[:url])
+  ""
+end
 
 get '/node-info/:id' do
   @cluster.nodes[params[:id].to_i].to_json
@@ -155,6 +161,7 @@ end
 get '/' do
   erb :start
 end
+
 
 not_found do
   error_page '404'
