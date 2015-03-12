@@ -1,5 +1,8 @@
 $("#draw-form").submit(function draw() {
     $("svg").remove();
+    $(".last-updated").hide();
+    $("#update-button").hide();
+    $("#node-info").html("");
 
     var cluster = $("#cluster").val();
     var edgeType = $("#edge-type").val();
