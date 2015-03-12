@@ -136,6 +136,8 @@ $("#draw-form").submit(function draw() {
             }
             table.append("</table>");
         });
+        $(".last-updated#" + cluster).show();
+        $("#update-button").show();
     }
 
     function toCell(x) {
@@ -246,6 +248,15 @@ $("#draw-form").submit(function draw() {
             ++currentLevel;
         } while(numberOfNullDegreeNodes != 0)
     }
+
+
+    $("#update-button").click(function () {
+        $.ajax({
+            type: "GET",
+            url: "/update",
+            data: "cluster=" + cluster
+        });
+    });
 });
 
 $("#add-button").click(function () {

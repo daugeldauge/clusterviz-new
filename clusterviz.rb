@@ -7,7 +7,7 @@ require 'neography'
 require 'set'
 
 class Cluster
-  attr_reader :nodes, :types, :url, :last_update
+  attr_reader :nodes, :types, :url, :last_updated
 
   def initialize(url)
     @url = url
@@ -34,7 +34,7 @@ class Cluster
     # nodes.each_value do |node|
     #   node['out_rels']['all'] = node['out_rels'].values.reduce(:+).to_i
     # end
-    @last_update = Time.now
+    @last_updated = Time.now
   end
 
   def get_id(url)
@@ -106,7 +106,7 @@ configure do
   
   set :clusters, { 
     'Chebyshev' => Cluster.new('http://graphit.parallel.ru:7474'),
-    #'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
+    'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
   }
 
   puts "configure() ends in #{Time.now - start_time}s"
@@ -122,6 +122,11 @@ end
 
 get '/add-cluster' do
   settings.clusters[params[:name]] = Cluster.new(params[:url])
+  ""
+end
+
+get '/update' do
+  @cluster.update
   ""
 end
 
