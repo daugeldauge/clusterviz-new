@@ -61,11 +61,11 @@ class Cluster
     roots = get_roots(type)
     rels = []
     
-    rels[0] = roots.map{ |root| get_out_relationships(cluster, root, type) }.reduce(:+)
+    rels[0] = roots.map{ |root| get_out_relationships(root, type) }.reduce(:+)
     (0...levels - 1).each do |i|
       rels[i + 1] = []
       rels[i].each do |rel|
-        rels[i + 1] += get_out_relationships(cluster, rel[:target], type)
+        rels[i + 1] += get_out_relationships(rel[:target], type)
         #puts "#{i + 1} #{rels[i + 1].size}"
       end
       #puts "#{i} #{rels[i].size}"
@@ -149,7 +149,7 @@ get '/neo' do
     roots = @cluster.get_roots(type)
     @cluster.get_graph([], type, roots).to_json
   else
-    levels = @cluster.get_levels(type, levels_number)
+    levels = @cluster.get_levels(type, level_number)
     rels = levels.reduce(:+)
     @cluster.get_graph(rels, type).to_json
   end

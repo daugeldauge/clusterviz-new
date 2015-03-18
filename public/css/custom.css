@@ -33,6 +33,7 @@ line {
 .node circle {
   stroke: #000;
   stroke-width: 3px;
+  cursor: pointer;
 }
 
 .node text {

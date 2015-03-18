@@ -2,24 +2,37 @@ $("#draw-form").submit(function draw() {
     $("svg").remove();
     $(".last-updated").hide();
     $("#update-button").hide();
+    $("#layout-opts").hide();
     $("#node-info").html("");
 
     var cluster = $("#cluster").val();
     var edgeType = $("#edge-type").val();
     var levels = $("#levels").val();
+    var layout = $("#layout").val();
 
     var w = $("#canvas").innerWidth(),
         h = $("#canvas").innerHeight();
 
+    var zoom = d3.behavior.zoom()
+        .scaleExtent([0.1, 10])
+        .on("zoom", function() {
+            svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        });
+    
     var svg = d3.select("#canvas").append("svg:svg")
         .attr("width", w)
-        .attr("height", h);
+        .attr("height", h)
 
     svg.append("svg:rect")
         .attr("width", w)
         .attr("height", h)
         .style("fill", "none")
-        .style("stroke", "#000");
+        .style("stroke", "#000")
+        .style("pointer-events", "all");
+
+    svg = svg.call(zoom)
+        .on("dblclick.zoom", null)
+        .append("g");
 
     var svgLines = svg.append("g");
     var svgNodes = svg.append("g");
@@ -29,21 +42,29 @@ $("#draw-form").submit(function draw() {
 
     var radius = parseInt($("#radius").val());
 
-    var force = d3.layout.force()
-        .gravity($("#gravity").val())
-        .distance(40)
-        .charge($("#charge").val())
-        .size([w, h]);
 
     var nodes,
         links, 
         index,
         indexSize;
+    
+    switch(layout) {
+        case "force": 
+            var force = d3.layout.force()
+                .gravity($("#gravity").val())
+                .distance(40)
+                .charge($("#charge").val())
+                .size([w, h]);
+            
+            $("#layout-opts").show();
 
-    $("#gravity") .change(function() { force.gravity(this.value);     update(); });
-    $("#charge")  .change(function() { force.charge(this.value);      update(); });
-    $("#radius")  .change(function() { radius = parseInt(this.value); update(); });
-
+            $("#gravity") .change(function() { force.gravity(this.value);     update(); });
+            $("#charge")  .change(function() { force.charge(this.value);      update(); });
+            $("#radius")  .change(function() { radius = parseInt(this.value); update(); });
+            break;
+        case "dagre":
+            break;
+    }
 
     d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster , function(json) {
         index = [];
@@ -58,13 +79,15 @@ $("#draw-form").submit(function draw() {
             link.source = nodes[index[link.source]];
             link.target = nodes[index[link.target]];
         });
-        force.nodes(nodes)
-            .links(links);
+
+        if (layout === "force") {
+            force.nodes(nodes)
+                .links(links);
+        }
         update();
     });
 
     function update() {
-
         var link = svgLines.selectAll("line.link")
             .data(links, function(d) { return d.source.id + "-" + d.target.id; });
 
@@ -79,14 +102,16 @@ $("#draw-form").submit(function draw() {
         var nodeEnter = node.enter().append("g")
             .attr("class", "node")
             .on("click", showInfo)
-            .on("dblclick", dblclick)
-            .call(force.drag);
+            .on("dblclick", dblclick);
 
         nodeEnter.append("circle")
             .style("fill", function(d) { return color(d.type); })
-            .style("stroke", function(d) { return d.size? "green": "red" })
-
-        var circle = svg.selectAll("circle");   
+            .style("stroke", function(d) { return d.size? "green": "red" });
+            
+        var circle = svg.selectAll("circle")
+            .attr("r", function(d) {
+            return 3 * Math.log(d.size + 1) + radius;
+        });   
 
         nodeEnter.append("text")
             .attr("dy", ".35em")
@@ -95,34 +120,51 @@ $("#draw-form").submit(function draw() {
         
         node.exit().remove();
 
-        // force.on("tick", function() {
-        //   link.attr("x1", function(d) { return d.source.x; })
-        //       .attr("y1", function(d) { return d.source.y; })
-        //       .attr("x2", function(d) { return d.target.x; })
-        //       .attr("y2", function(d) { return d.target.y; });
-
-        //   node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-        // });
-
-        force.on("tick", function () {
-            circle.attr("r", function(d) {
-                return 3 * Math.log(d.size + 1) + radius;
-            });
-
+        var tick = function () {
             node.attr("transform", function(d) { 
                 return "translate(" + 
-                    (d.x = Math.max(0, Math.min(w, d.x))) + "," +
-                    (d.y = Math.max(0, Math.min(h, d.y))) + ")";
+                    d.x + "," +
+                    d.y + ")";
             });
 
             link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
                 .attr("y2", function(d) { return d.target.y; });
-        });
+        };
+
+        switch(layout) {
+            case "force":
+                nodeEnter.call(force.drag);
+                force.on("tick", tick);            
+                force.start();
+                
+                break;
+            case "dagre":
+                dagreGraph = new dagre.graphlib.Graph()
+                    .setGraph({})
+                    .setDefaultEdgeLabel(function() { return {}; });
+                
+                nodes.forEach(function(node){
+                    dagreGraph.setNode(node.id, {label: ""});
+                });                    
+
+                links.forEach(function(link){
+                    dagreGraph.setEdge(link.source.id, link.target.id);
+                });
+
+                dagre.layout(dagreGraph);
+
+                nodes.forEach(function(node){
+                    node.x = dagreGraph.node(node.id).x;
+                    node.y = dagreGraph.node(node.id).y;
+                });
+
+                tick();
+                break;
+        }
 
         //topologicalSort();
-        force.start();
     }
 
     function showInfo(d) {
@@ -252,6 +294,18 @@ $("#draw-form").submit(function draw() {
         } while(numberOfNullDegreeNodes != 0)
     }
 
+    function dragstarted(d) {
+        d3.event.sourceEvent.stopPropagation();
+        d3.select(this).classed("dragging", true);
+    }
+
+    function dragged(d) {
+        d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+    }
+
+    function dragended(d) {
+        d3.select(this).classed("dragging", false);
+    }
 
     $("#update-button").click(function () {
         $.ajax({

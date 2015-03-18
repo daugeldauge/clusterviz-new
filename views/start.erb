@@ -26,9 +26,20 @@
             <% end %>
           </select>
         </div>
+        <div class="form-group">
+          <label class="control-label">Layout</label>
+          <select class="form-control" id="layout">
+              <option value="force">
+                d3 force
+              </option>
+              <option value="dagre">
+                dagre
+              </option>
+          </select>
+        </div>
         <button type="submit" class="btn btn-primary" id="draw-button">Draw</button>
       </form>
-      <div class="panel panel-info">
+      <div class="panel panel-info" id="layout-opts" style="display: none;">
         <div class="panel-heading">
           <h3 class="panel-title">Layout options</h3>
         </div>
@@ -101,4 +112,5 @@
 </div>
 
 <script src="/js/d3.v3.min.js"></script>
+<script src="/js/dagre.min.js"></script>
 <script src="/js/viz.js"></script>
