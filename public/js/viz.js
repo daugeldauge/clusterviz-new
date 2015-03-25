@@ -56,6 +56,9 @@ $("#draw-form").submit(function draw() {
                 .charge($("#charge").val())
                 .size([w, h]);
             
+            var drag = force.drag().on("dragstart", function() { d3.event.sourceEvent.stopPropagation(); })
+            
+
             $("#layout-opts").show();
 
             $("#gravity") .change(function() { force.gravity(this.value);     update(); });
@@ -135,7 +138,7 @@ $("#draw-form").submit(function draw() {
 
         switch(layout) {
             case "force":
-                nodeEnter.call(force.drag);
+                nodeEnter.call(drag);
                 force.on("tick", tick);            
                 force.start();
                 
