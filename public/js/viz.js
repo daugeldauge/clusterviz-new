@@ -56,8 +56,14 @@ $("#draw-form").submit(function draw() {
                 .charge($("#charge").val())
                 .size([w, h]);
             
-            var drag = force.drag().on("dragstart", function() { d3.event.sourceEvent.stopPropagation(); })
-            
+            var drag = force.drag()
+                .on("dragstart", function(d) { d3.event.sourceEvent.stopPropagation(); })
+                .on("dragend", function(d) { 
+                    if (d3.event.sourceEvent.shiftKey) {
+                        d.fixed = !d.fixed;
+                    }
+                });
+                
 
             $("#layout-opts").show();
 
