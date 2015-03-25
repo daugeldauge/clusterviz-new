@@ -49,19 +49,34 @@ $("#draw-form").submit(function draw() {
         indexSize;
     
     switch(layout) {
-        case "force": 
+        case "force":
             var force = d3.layout.force()
                 .gravity($("#gravity").val())
                 .distance(40)
                 .charge($("#charge").val())
                 .size([w, h]);
             
+            var isForceRunnnig = true;
+            $(window).keypress(function(e) {
+                if (e.keyCode == 32) {
+                    if (isForceRunnnig) {
+                        force.stop();
+                    } else {
+                        force.resume();
+                    }
+                    isForceRunnnig = !isForceRunnnig;
+                }
+            });
+
             var drag = force.drag()
-                .on("dragstart", function(d) { d3.event.sourceEvent.stopPropagation(); })
+                .on("dragstart", function(d) { 
+                    isForceRunnnig = true;
+                    d3.event.sourceEvent.stopPropagation(); })
                 .on("dragend", function(d) { 
                     if (d3.event.sourceEvent.shiftKey) {
                         d.fixed = !d.fixed;
                     }
+                    force.start();
                 });
                 
 
@@ -146,6 +161,7 @@ $("#draw-form").submit(function draw() {
             case "force":
                 nodeEnter.call(drag);
                 force.on("tick", tick);            
+                isForceRunnnig = true;
                 force.start();
                 
                 break;
