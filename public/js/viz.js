@@ -71,7 +71,8 @@ $("#draw-form").submit(function draw() {
             var drag = force.drag()
                 .on("dragstart", function(d) { 
                     isForceRunnnig = true;
-                    d3.event.sourceEvent.stopPropagation(); })
+                    d3.event.sourceEvent.stopPropagation();
+                })
                 .on("dragend", function(d) { 
                     if (d3.event.sourceEvent.shiftKey) {
                         d.fixed = !d.fixed;
@@ -317,19 +318,6 @@ $("#draw-form").submit(function draw() {
 
             ++currentLevel;
         } while(numberOfNullDegreeNodes != 0)
-    }
-
-    function dragstarted(d) {
-        d3.event.sourceEvent.stopPropagation();
-        d3.select(this).classed("dragging", true);
-    }
-
-    function dragged(d) {
-        d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
-    }
-
-    function dragended(d) {
-        d3.select(this).classed("dragging", false);
     }
 
     $("#update-button").click(function () {
