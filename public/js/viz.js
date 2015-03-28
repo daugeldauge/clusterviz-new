@@ -57,15 +57,13 @@ $("#draw-form").submit(function draw() {
                 .size([w, h]);
             
             var isForceRunnnig = true;
-            $(window).keypress(function(e) {
-                if (e.keyCode == 32) {
-                    if (isForceRunnnig) {
-                        force.stop();
-                    } else {
-                        force.resume();
-                    }
-                    isForceRunnnig = !isForceRunnnig;
+            $("#pause-force-layout").click(function(e) {
+                if (isForceRunnnig) {
+                    force.stop();
+                } else {
+                    force.resume();
                 }
+                isForceRunnnig = !isForceRunnnig;
             });
 
             var drag = force.drag()
