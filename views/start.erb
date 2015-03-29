@@ -37,7 +37,7 @@
               </option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary" id="draw-button">Draw</button>
+        <button type="submit" class="btn btn-primary" id="draw-button" data-toggle="modal" data-target="#loading-modal">Draw</button>
       </form>
       <div class="panel panel-info" id="layout-opts" style="display: none;">
         <div class="panel-heading">
@@ -112,6 +112,24 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="loading-modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" aria-labelledby="add-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="margin:0;">Loading</h3>
+      </div>
+      <div class="modal-body">
+        <div class="progress progress-striped active" style="margin-bottom:0;">
+          <div class="progress-bar" style="width: 100%">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
 <script src="/js/d3.v3.min.js"></script>
 <script src="/js/dagre.min.js"></script>

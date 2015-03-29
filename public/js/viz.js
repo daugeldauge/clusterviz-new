@@ -108,6 +108,7 @@ $("#draw-form").submit(function draw() {
                 .links(links);
         }
         update();
+        $("#loading-modal").modal("hide");
     });
 
     function update() {
