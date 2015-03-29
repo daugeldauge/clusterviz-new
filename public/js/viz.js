@@ -180,9 +180,18 @@ $("#draw-form").submit(function draw() {
 
                 dagre.layout(dagreGraph);
 
+                maxX = dagreGraph
+                    .nodes()
+                    .map(function(id) { 
+                        return dagreGraph.node(id).x;
+                    })
+                    .reduce(function (p, v) {
+                        return ((p > v)? p: v);
+                    });
+
                 nodes.forEach(function(node){
-                    node.x = dagreGraph.node(node.id).x;
-                    node.y = dagreGraph.node(node.id).y;
+                    node.x = dagreGraph.node(node.id).x + w / 2  - maxX / 2;
+                    node.y = dagreGraph.node(node.id).y + h / 2 ;
                 });
 
                 tick();
