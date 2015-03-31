@@ -120,20 +120,24 @@ def error_page msg
 end
 
 get '/add-cluster' do
-  settings.clusters[params[:name]] = Cluster.new(params[:url])
-  ""
+  begin
+    settings.clusters[params[:name]] = Cluster.new(params[:url])
+  rescue StandardError
+    status 400
+  end 
 end
 
 get '/update' do
   @cluster.update
-  ""
 end
 
 get '/node-info/:id' do
+  content_type :json
   @cluster.nodes[params[:id].to_i].to_json
 end
 
 get '/node-out-relations/:id' do 
+  content_type :json
   type = params[:type]
   
   rels = @cluster.get_out_relationships(params[:id], type)
@@ -141,6 +145,7 @@ get '/node-out-relations/:id' do
 end 
 
 get '/neo' do
+  content_type :json
   type = params[:type]
   
   level_number = params[:levels].to_i

@@ -338,7 +338,7 @@ $("#draw-form").submit(function draw() {
 });
 
 $("#add-button").click(function () {
-    $("#error-msg").toggle();
+    $("#add-error-msg").hide();
     $.ajax({
         type: "GET",
         url: "/add-cluster",
@@ -347,10 +347,12 @@ $("#add-button").click(function () {
             $("#add-modal").modal("hide");
             location.reload();  
         },
-        error: function(){
-            $("#error-msg").show();
-            $("add-button").prop("disabled", true);
+        error: function() {
+            $("#add-progress").hide();
+            $("#add-error-msg").show();
+            $("#add-button").prop("disabled", false);
         }
     });
-    $("add-button").prop("disabled", true);
+    $("#add-button").prop("disabled", true);
+    $("#add-progress").show();
 });
