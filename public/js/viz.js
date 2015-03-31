@@ -34,6 +34,7 @@ $("#draw-form").submit(function draw() {
         .on("dblclick.zoom", null)
         .append("g");
 
+    var svgPaths = svg.append("g");
     var svgLines = svg.append("g");
     var svgNodes = svg.append("g");
 
@@ -49,6 +50,7 @@ $("#draw-form").submit(function draw() {
         indexSize;
     
     switch(layout) {
+        case "force-tree":
         case "force":
             var force = d3.layout.force()
                 .gravity($("#gravity").val())
@@ -103,7 +105,7 @@ $("#draw-form").submit(function draw() {
             link.target = nodes[index[link.target]];
         });
 
-        if (layout === "force") {
+        if (layout !== "dagre") {
             force.nodes(nodes)
                 .links(links);
         }
@@ -112,6 +114,7 @@ $("#draw-form").submit(function draw() {
     });
 
     function update() {
+
         var link = svgLines.selectAll("line.link")
             .data(links, function(d) { return d.source.id + "-" + d.target.id; });
 
@@ -144,7 +147,39 @@ $("#draw-form").submit(function draw() {
         
         node.exit().remove();
 
-        var tick = function () {
+        var tick = function(e) {
+
+            if (layout === "force-tree") {
+                var k = 10 * e.alpha;
+                
+                // groups.forEach(function(group) {
+                //     var nodes = group.values;
+                //     for (var i = 1; i < nodes.length; ++i) {
+                //         var dx = nodes[i].x - nodes[0].x;
+                //         var dy = nodes[i].y - nodes[0].y;
+                //         nodes[i].x -= k * dx / Math.abs(dx);
+                //         nodes[i].y -= k * dy / Math.abs(dy);
+                //     }
+                // });
+
+                links.forEach(function(link) {
+                    link.source.y -= k;
+                    link.target.y += k;
+                });
+
+
+                var group = svgPaths.selectAll("path")
+                    .data(groups)
+                        .attr("d", groupPath)
+                    .enter().insert("path", "circle")
+                        .style("fill", groupFill)
+                        .style("stroke", groupFill)
+                        .style("stroke-width", 40)
+                        .style("stroke-linejoin", "round")
+                        .style("opacity", .2)
+                        .attr("d", groupPath);
+            }            
+            
             node.attr("transform", function(d) { 
                 return "translate(" + 
                     d.x + "," +
@@ -158,6 +193,25 @@ $("#draw-form").submit(function draw() {
         };
 
         switch(layout) {
+            case "force-tree":
+                topologicalSort();
+                
+                var groups = d3.nest()
+                    .key(function(d) { return d.level; })
+                    .entries(nodes)
+                    .filter(function(group) {
+                        return group.values.length > 2;
+                    });
+        
+                var groupPath = function(d) {
+                    return "M" + 
+                        d3.geom.hull(d.values.map(function(i) { return [i.x, i.y]; }))
+                    .join("L")
+                    + "Z";
+                };
+        
+                var groupFill = function(d, i) { return color(i); };
+                /* NO BREAK ON PURPOSE*/
             case "force":
                 nodeEnter.call(drag);
                 force.on("tick", tick);            
@@ -197,8 +251,6 @@ $("#draw-form").submit(function draw() {
                 tick();
                 break;
         }
-
-        //topologicalSort();
     }
 
     function showInfo(d) {
