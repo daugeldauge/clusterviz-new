@@ -174,7 +174,7 @@ $("#draw-form").submit(function draw() {
                     .enter().insert("path", "circle")
                         .style("fill", groupFill)
                         .style("stroke", groupFill)
-                        .style("stroke-width", 40)
+                        .style("stroke-width", radius * 6)
                         .style("stroke-linejoin", "round")
                         .style("opacity", .2)
                         .attr("d", groupPath);
