@@ -41,10 +41,6 @@ line {
   pointer-events: none;
 }
 
-#draw-button {
-  margin-bottom: 20px;
-}
-
 #canvas {
   height: 960px;
 }

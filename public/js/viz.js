@@ -387,6 +387,22 @@ $("#draw-form").submit(function draw() {
             data: "cluster=" + cluster
         });
     });
+
+    $("#show-filter-modal-button").click(function() {
+        nodeTypes = d3.set(
+            nodes.map(function(node) { return node.type; })
+        ).values()
+
+        $("#list-of-node-types").html(
+            nodeTypes.map(function(type) {
+                return "<label><input>"+ type + "</label>";
+            }).join("\n")
+        );
+
+        $("#list-of-node-types > label").addClass("btn btn-default");
+        $("#list-of-node-types > label > input").prop("type", "checkbox");
+
+    });
 });
 
 $("#add-button").click(function () {
