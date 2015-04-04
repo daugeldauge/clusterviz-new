@@ -1,3 +1,5 @@
+"use strict";
+
 $("#draw-form").submit(function draw() {
     $("svg").remove();
     $(".last-updated").hide();
@@ -87,19 +89,7 @@ $("#draw-form").submit(function draw() {
             break;
     }
 
-    d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster , function(json) {
-        
-        json.nodes.forEach(function(node) {
-            graph.setNode(node.id, node);
-        });                    
-
-        json.links.forEach(function(link) {
-            graph.setEdge(link.source, link.target);
-        });
-        
-        update();
-        $("#loading-modal").modal("hide");
-    });
+    d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster, load);
 
     function update() {
         var nodes = getNodes(),
@@ -246,6 +236,19 @@ $("#draw-form").submit(function draw() {
         }
     }
 
+    function load(json) {
+        json.nodes.forEach(function(node) {
+            graph.setNode(node.id, node);
+        });                    
+
+        json.links.forEach(function(link) {
+            graph.setEdge(link.source, link.target);
+        });
+        
+        update();
+        $("#loading-modal").modal("hide");
+    }
+
     function getNodes() {
         return graph.nodes().map(function (id) { return graph.node(id); });
     }
@@ -259,16 +262,15 @@ $("#draw-form").submit(function draw() {
         });
     }
 
-    function showInfo(d) {
-        d3.json("/node-info/" + d.id + "?cluster=" + cluster, function(nodeInfo) {
+    function showInfo(node) {
+        d3.json("/node-info/" + node.id + "?cluster=" + cluster, function(nodeInfo) {
             var table = $("#node-info")
                 .empty()
                 .css("text-align", "left")
-                //.attr("border", 0.1)
                 .append("<thead><tr><th>Key</th><th>Value</th></tr></thead>")
-                .append("<tr><td>id</td><td>" + d.id +"</td></tr>");
+                .append("<tr><td>id</td><td>" + node.id +"</td></tr>");
 
-            for (key in nodeInfo) {
+            for (var key in nodeInfo) {
                 table.append("<tr><td>" + key + "</td><td>" + toCell(nodeInfo[key]) +"</td></tr>");
             }
             table.append("</table>");
@@ -280,7 +282,7 @@ $("#draw-form").submit(function draw() {
     function toCell(x) {
         if ($.isPlainObject(x)) {
             var cell = ""
-            for (key in x) {
+            for (var key in x) {
                 cell += "<b>" + key + ":</b>&nbsp;" + toCell(x[key]) + "<br>";
             }
             return cell;
@@ -289,74 +291,25 @@ $("#draw-form").submit(function draw() {
         }
     }
 
-    function getNumberOfChildren(d) {
-        var n = 0;
-        links.forEach(function (link) {
-            if (link.source === d) {
-                ++n;
-            }
-        });
-        return n;
-    }
-
-    function dblclick(d) {
-        if (d.size == getNumberOfChildren(d)) {
-            var linksToRemove = collapse(d);
-            linksToRemove.sort(function(a, b) {
-                return a - b;
-            });
-
-            for (var i = linksToRemove.length - 1; i >=0; --i) {
-                links.splice(linksToRemove[i], 1);
-            }
-
+    function dblclick(node) {
+        if (node.size == graph.successors(node.id).length) {
+            collapse(node.id);
             update();
         } else {
-            expand(d);
+            expand(node.id);
         }
     }
 
-    function expand(d) {
-        //alert("dblclick on " + d.id);
-        d3.json("/node-out-relations/" + d.id + "?type=" + edgeType + "&cluster=" + cluster, function(graph) {
-
-            var oldIndexSize = indexSize;
-            graph.nodes.forEach(function(node) {
-                if (index[node.id] == null) {
-                    nodes.push(node);
-                    index[node.id] = indexSize;
-                    indexSize++;
-                }
-            });
-
-            graph.links.forEach(function (link) {
-                link.source = nodes[index[link.source]];
-                link.target = nodes[index[link.target]];
-                links.push(link);
-            });
-            update();
-        });
+    function expand(id) {
+        d3.json("/node-out-relations/" + id + "?type=" + edgeType + "&cluster=" + cluster, load);
     }
 
-    function collapse(d) {
-        if (d.size == 0) {
-            return [];
-        }
-        var linksToRemove = [];
-        links.forEach(function (link, index) {
-            if (link.source === d) {
-                linksToRemove = linksToRemove.concat(collapse(link.target));
-                linksToRemove.push(index);
-                remove(link.target);
-            }
-        });
-        return linksToRemove;
-    }
-
-    function remove(d) {
-        nodes.splice(nodes.indexOf(d), 1);
-        delete index[d.id];
-        --indexSize;
+    function collapse(id) {
+        var successors = graph.successors(id);
+        successors.forEach(function(successor) {
+            collapse(successor);
+            graph.removeNode(successor);
+        }); 
     }
 
     function topologicalSort() {
