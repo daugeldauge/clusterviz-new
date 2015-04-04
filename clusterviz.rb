@@ -105,7 +105,7 @@ configure do
   
   set :clusters, { 
     'Chebyshev' => Cluster.new('http://graphit.parallel.ru:7474'),
-    'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
+    #'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
   }
 
   puts "configure() ends in #{Time.now - start_time}s"

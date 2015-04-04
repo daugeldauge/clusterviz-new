@@ -389,19 +389,24 @@ $("#draw-form").submit(function draw() {
     });
 
     $("#show-filter-modal-button").click(function() {
-        nodeTypes = d3.set(
+        var nodeTypes = d3.set(
             nodes.map(function(node) { return node.type; })
-        ).values()
+        ).values();
 
         $("#list-of-node-types").html(
             nodeTypes.map(function(type) {
-                return "<label><input>"+ type + "</label>";
+                return '<label><input name="' + type + '">'+ type + '</label>';
             }).join("\n")
         );
 
         $("#list-of-node-types > label").addClass("btn btn-default");
         $("#list-of-node-types > label > input").prop("type", "checkbox");
 
+    });
+
+    $("#filter-button").click(function() {
+        types = $("#filter-form input:checkbox:checked").map(function() { return $(this).attr("name"); });
+        
     });
 });
 
