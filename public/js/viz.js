@@ -45,7 +45,9 @@ $("#draw-form").submit(function draw() {
 
     var radius = parseInt($("#radius").val());
     
-    var graph = new dagre.graphlib.Graph().setDefaultEdgeLabel(function() { return {}; });
+    var graph = new dagre.graphlib.Graph()
+        .setGraph({})
+        .setDefaultEdgeLabel(function() { return {}; });
 
     switch(layout) {
         case "force-tree":
@@ -203,32 +205,11 @@ $("#draw-form").submit(function draw() {
                 
                 break;
             case "dagre":
-                dagreGraph = new dagre.graphlib.Graph()
-                    .setGraph({})
-                    .setDefaultEdgeLabel(function() { return {}; });
-                
-                nodes.forEach(function(node){
-                    dagreGraph.setNode(node.id, {label: ""});
-                });                    
-
-                links.forEach(function(link){
-                    dagreGraph.setEdge(link.source.id, link.target.id);
-                });
-
-                dagre.layout(dagreGraph);
-
-                maxX = dagreGraph
-                    .nodes()
-                    .map(function(id) { 
-                        return dagreGraph.node(id).x;
-                    })
-                    .reduce(function (p, v) {
-                        return ((p > v)? p: v);
-                    });
+                dagre.layout(graph);
 
                 nodes.forEach(function(node){
-                    node.x = dagreGraph.node(node.id).x + w / 2  - maxX / 2;
-                    node.y = dagreGraph.node(node.id).y + h / 2 ;
+                    node.x += w / 2  - graph.graph().width / 2;
+                    node.y += h / 2 ;
                 });
 
                 tick();
@@ -360,7 +341,6 @@ $("#draw-form").submit(function draw() {
 
         $("#list-of-node-types > label").addClass("btn btn-default");
         $("#list-of-node-types > label > input").prop("type", "checkbox");
-
     });
 
     $("#filter-button").click(function() {
