@@ -42,13 +42,9 @@ $("#draw-form").submit(function draw() {
     var size = d3.scale.log();
 
     var radius = parseInt($("#radius").val());
-
-
-    var nodes,
-        links, 
-        index,
-        indexSize;
     
+    var graph = new dagre.graphlib.Graph().setDefaultEdgeLabel(function() { return {}; });
+
     switch(layout) {
         case "force-tree":
         case "force":
@@ -92,28 +88,22 @@ $("#draw-form").submit(function draw() {
     }
 
     d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster , function(json) {
-        index = [];
-        nodes = json.nodes;
-        links = json.links;
+        
+        json.nodes.forEach(function(node) {
+            graph.setNode(node.id, node);
+        });                    
 
-        indexSize = nodes.length;
-        for (var i = 0; i < nodes.length; ++i) {
-            index[nodes[i].id] = i;
-        }
-        links.forEach(function (link) {
-            link.source = nodes[index[link.source]];
-            link.target = nodes[index[link.target]];
+        json.links.forEach(function(link) {
+            graph.setEdge(link.source, link.target);
         });
-
-        if (layout !== "dagre") {
-            force.nodes(nodes)
-                .links(links);
-        }
+        
         update();
         $("#loading-modal").modal("hide");
     });
 
     function update() {
+        var nodes = getNodes(),
+            links = getLinks();
 
         var link = svgLines.selectAll("line.link")
             .data(links, function(d) { return d.source.id + "-" + d.target.id; });
@@ -214,9 +204,12 @@ $("#draw-form").submit(function draw() {
                 /* NO BREAK ON PURPOSE*/
             case "force":
                 nodeEnter.call(drag);
-                force.on("tick", tick);            
                 isForceRunnnig = true;
-                force.start();
+                
+                force.on("tick", tick)
+                    .nodes(nodes)
+                    .links(links)
+                    .start();
                 
                 break;
             case "dagre":
@@ -251,6 +244,19 @@ $("#draw-form").submit(function draw() {
                 tick();
                 break;
         }
+    }
+
+    function getNodes() {
+        return graph.nodes().map(function (id) { return graph.node(id); });
+    }
+
+    function getLinks() {
+        return graph.edges().map(function (edge) {
+            return { 
+                source: graph.node(edge.v),
+                target: graph.node(edge.w)
+            };
+        });
     }
 
     function showInfo(d) {
