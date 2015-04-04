@@ -6,6 +6,7 @@ $("#draw-form").submit(function draw() {
     $("#update-button").hide();
     $("#layout-opts").hide();
     $("#node-info").html("");
+    $("#show-filter-modal-button").show();
 
     var cluster = $("#cluster").val();
     var edgeType = $("#edge-type").val();
@@ -45,9 +46,11 @@ $("#draw-form").submit(function draw() {
 
     var radius = parseInt($("#radius").val());
     
-    var graph = new graphlib.Graph()
+    var graph = new dagre.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
+
+    var filterFunction = undefined;
 
     switch(layout) {
         case "force-tree":
@@ -94,8 +97,10 @@ $("#draw-form").submit(function draw() {
     d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster, load);
 
     function update() {
-        var nodes = getNodes(),
-            links = getLinks();
+        var visibleGraph = filterFunction? graph.filterNodes(filterFunction): graph; 
+
+        var nodes = visibleGraph.getNodes(),
+            links = visibleGraph.getLinks();
 
         var link = svgLines.selectAll("line.link")
             .data(links, function(d) { return d.source.id + "-" + d.target.id; });
@@ -230,19 +235,6 @@ $("#draw-form").submit(function draw() {
         $("#loading-modal").modal("hide");
     }
 
-    function getNodes() {
-        return graph.nodes().map(function (id) { return graph.node(id); });
-    }
-
-    function getLinks() {
-        return graph.edges().map(function (edge) {
-            return { 
-                source: graph.node(edge.v),
-                target: graph.node(edge.w)
-            };
-        });
-    }
-
     function showInfo(node) {
         d3.json("/node-info/" + node.id + "?cluster=" + cluster, function(nodeInfo) {
             var table = $("#node-info")
@@ -317,24 +309,41 @@ $("#draw-form").submit(function draw() {
         });
     });
 
+    var types, filteredTypes = d3.set(); 
+
     $("#show-filter-modal-button").click(function() {
-        var nodeTypes = d3.set(
-            nodes.map(function(node) { return node.type; })
+        types = d3.set(
+            graph.getNodes().map(function(node) { return node.type; })
         ).values();
 
-        $("#list-of-node-types").html(
-            nodeTypes.map(function(type) {
-                return '<label><input name="' + type + '">'+ type + '</label>';
-            }).join("\n")
-        );
+        $("#list-of-node-types").empty();
 
-        $("#list-of-node-types > label").addClass("btn btn-default");
-        $("#list-of-node-types > label > input").prop("type", "checkbox");
+        types.forEach(function(type) {
+            var label = $("<label>")
+                .addClass("btn btn-default")
+                .html(type)
+                .appendTo("#list-of-node-types");
+
+            var input = $("<input>")
+                .attr({name: type, type: "checkbox"})
+                .appendTo(label);
+
+            if (!filteredTypes.has(type)) {
+                label.addClass("active");
+                input.prop('checked', true);
+            }
+        });
     });
 
     $("#filter-button").click(function() {
-        types = $("#filter-form input:checkbox:checked").map(function() { return $(this).attr("name"); });
-        
+        filteredTypes = d3.set($("#filter-form input:checkbox:not(:checked)").map(function() { return $(this).attr("name"); }));
+
+        filterFunction = function(node) {
+            return !filteredTypes.has(node.type);
+        };
+
+        update();
+        $("#filter-modal").modal("hide");
     });
 });
 
