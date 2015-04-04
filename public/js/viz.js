@@ -45,7 +45,7 @@ $("#draw-form").submit(function draw() {
 
     var radius = parseInt($("#radius").val());
     
-    var graph = new dagre.graphlib.Graph()
+    var graph = new graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
 
@@ -129,7 +129,7 @@ $("#draw-form").submit(function draw() {
         
         node.exit().remove();
 
-        var tick = function(e) {
+        var tick = function tick(e) {
 
             if (layout === "force-tree") {
                 var k = 10 * e.alpha;
@@ -295,29 +295,18 @@ $("#draw-form").submit(function draw() {
 
     function topologicalSort() {
         var currentLevel = 0;
-
-        nodes.forEach(function(node) { node.level = undefined });
-
+        var currentGraph = graph; 
+        
         do {
-            // create array of zeros
-            var nodeDegrees = Array.apply(null, new Array(indexSize)).map(Number.prototype.valueOf, 0); 
-            
-            links.forEach(function(link) { 
-                if (link.source.level == undefined && link.target.level == undefined) {
-                    nodeDegrees[index[link.target.id]] += 1;
-                }
-            });
+            currentGraph = currentGraph.copy();
 
-            var numberOfNullDegreeNodes = 0;
-            nodeDegrees.forEach(function(degree, index) {
-                if (nodes[index].level == undefined && degree == 0) {
-                    ++numberOfNullDegreeNodes;
-                    nodes[index].level = currentLevel;
-                }
+            currentGraph.sources().forEach(function(id) {
+                currentGraph.node(id).level = currentLevel;
+                currentGraph.removeNode(id);
             });
 
             ++currentLevel;
-        } while(numberOfNullDegreeNodes != 0)
+        } while(currentGraph.nodeCount() != 0)
     }
 
     $("#update-button").click(function () {
