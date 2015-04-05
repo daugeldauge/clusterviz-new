@@ -4,6 +4,7 @@ require 'sinatra/contrib'
 require 'json'
 require 'neography'
 require 'set'
+require 'pry'
 
 class Cluster
   attr_reader :nodes, :types, :url, :last_updated
@@ -72,6 +73,18 @@ class Cluster
     rels
   end
 
+  def get_links_through_successor(type)
+    query = "MATCH (n:OBJECT)-[:LINK {type: 'contain'}]->()-[:LINK {type: '#{type}'}]->()<-[:LINK {type: 'contain'}]-(m:OBJECT) RETURN DISTINCT [ID(n), ID(m)]"
+    @neo.execute_query(query)['data'].map do |pair|
+      {
+        source: pair[0][0],
+        target: pair[0][1],
+        type: type
+      }
+    end
+  end
+
+
   def get_links(rels)
     rels.map do |rel|
       {
@@ -105,7 +118,7 @@ configure do
   
   set :clusters, { 
     'Chebyshev' => Cluster.new('http://graphit.parallel.ru:7474'),
-    #'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
+    'Lomonosov' => Cluster.new('http://stat1.lom.parallel.ru:7474')
   }
 
   puts "configure() ends in #{Time.now - start_time}s"
@@ -117,6 +130,11 @@ end
 
 def error_page msg
   erb :error, :locals => {:msg => msg}
+end
+
+get '/links-through-successor' do
+  content_type :json
+  @cluster.get_links_through_successor(params[:type]).to_json
 end
 
 get '/add-cluster' do

@@ -50,6 +50,7 @@ $("#draw-form").submit(function draw() {
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
 
+    var visibleGraph = graph;
     var filterFunction = undefined;
 
     switch(layout) {
@@ -97,7 +98,7 @@ $("#draw-form").submit(function draw() {
     d3.json("/neo?levels=" + levels + "&type=" + edgeType + "&cluster=" + cluster, load);
 
     function update() {
-        var visibleGraph = filterFunction? graph.filterNodes(filterFunction): graph; 
+        var visibleGraph = filterFunction? smartFilter(graph, filterFunction): graph;
 
         var nodes = visibleGraph.getNodes(),
             links = visibleGraph.getLinks();
@@ -309,7 +310,8 @@ $("#draw-form").submit(function draw() {
         });
     });
 
-    var types, filteredTypes = d3.set(); 
+    var types, filteredTypes = d3.set();
+    var linksThroughSuccessor = undefined;
 
     $("#show-filter-modal-button").click(function() {
         types = d3.set(
@@ -345,6 +347,30 @@ $("#draw-form").submit(function draw() {
         update();
         $("#filter-modal").modal("hide");
     });
+
+    function smartFilter(graph, func) {
+        var result = graph.filterNodes(func);
+        
+        if (!linksThroughSuccessor) {
+            $.ajax({
+                url: "/links-through-successor",
+                data: {type: edgeType, cluster: cluster},
+                async: false,
+                dataType: "json",
+                success: function(data) { linksThroughSuccessor = data }
+            });
+        }
+
+        linksThroughSuccessor.forEach(function(link) {
+            var v = link.source;
+            var w = link.target
+            if (result.hasNode(v) && result.hasNode(w) && !result.hasEdge(v, w)) {
+                result.setEdge(v, w);
+            }
+        });
+
+        return result;
+    }
 });
 
 $("#add-button").click(function () {
