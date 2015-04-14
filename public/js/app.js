@@ -182,7 +182,7 @@ $("#draw-form").submit(function draw() {
 
         switch(layout) {
             case "force-tree":
-                topologicalSort();
+                topologicalSort(graph);
                 
                 var groups = d3.nest()
                     .key(function(d) { return d.level; })
@@ -267,7 +267,7 @@ $("#draw-form").submit(function draw() {
 
     function dblclick(node) {
         if (node.size == graph.successors(node.id).length) {
-            collapse(node.id);
+            collapse(graph, node.id);
             update();
         } else {
             expand(node.id);
@@ -276,30 +276,6 @@ $("#draw-form").submit(function draw() {
 
     function expand(id) {
         d3.json("/node-out-relations/" + id + "?type=" + edgeType + "&cluster=" + cluster, load);
-    }
-
-    function collapse(id) {
-        var successors = graph.successors(id);
-        successors.forEach(function(successor) {
-            collapse(successor);
-            graph.removeNode(successor);
-        }); 
-    }
-
-    function topologicalSort() {
-        var currentLevel = 0;
-        var currentGraph = graph; 
-        
-        do {
-            currentGraph = currentGraph.copy();
-
-            currentGraph.sources().forEach(function(id) {
-                currentGraph.node(id).level = currentLevel;
-                currentGraph.removeNode(id);
-            });
-
-            ++currentLevel;
-        } while(currentGraph.nodeCount() != 0)
     }
 
     $("#update-button").click(function () {
@@ -312,6 +288,31 @@ $("#draw-form").submit(function draw() {
 
     var types, filteredTypes = d3.set();
     var linksThroughSuccessor = undefined;
+
+    function smartFilter(graph, func) {
+        var result = graph.filterNodes(func);
+        
+        if (!linksThroughSuccessor) {
+            $.ajax({
+                url: "/links-through-successor",
+                data: {type: edgeType, cluster: cluster},
+                async: false,
+                dataType: "json",
+                success: function(data) { linksThroughSuccessor = data }
+            });
+        }
+
+        linksThroughSuccessor.forEach(function(link) {
+            var v = link.source;
+            var w = link.target
+            if (result.hasNode(v) && result.hasNode(w) && !result.hasEdge(v, w)) {
+                result.setEdge(v, w);
+            }
+        });
+
+        return result;
+    }
+
 
     $("#show-filter-modal-button").click(function() {
         types = d3.set(
@@ -347,30 +348,6 @@ $("#draw-form").submit(function draw() {
         update();
         $("#filter-modal").modal("hide");
     });
-
-    function smartFilter(graph, func) {
-        var result = graph.filterNodes(func);
-        
-        if (!linksThroughSuccessor) {
-            $.ajax({
-                url: "/links-through-successor",
-                data: {type: edgeType, cluster: cluster},
-                async: false,
-                dataType: "json",
-                success: function(data) { linksThroughSuccessor = data }
-            });
-        }
-
-        linksThroughSuccessor.forEach(function(link) {
-            var v = link.source;
-            var w = link.target
-            if (result.hasNode(v) && result.hasNode(w) && !result.hasEdge(v, w)) {
-                result.setEdge(v, w);
-            }
-        });
-
-        return result;
-    }
 });
 
 $("#add-button").click(function () {
