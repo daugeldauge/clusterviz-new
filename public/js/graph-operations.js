@@ -1,7 +1,7 @@
 function collapse(graph, id) {
     var successors = graph.successors(id);
     successors.forEach(function(successor) {
-        collapse(successor);
+        collapse(graph, successor);
         graph.removeNode(successor);
     }); 
 }
@@ -85,8 +85,14 @@ function aggregate(graph) {
                 
                 var root = graph.node(rootId);
                 
-                root.aggregated = [rootId];
-                root.number = 1;
+                var value = {};
+                value.aggregated = [rootId];
+                value.number = 1;
+                value.id = root.id;
+                value.size = root.size;
+                value.type = root.type;
+                graph.setNode(rootId, value);
+                
                 
                 fringe.forEach(function(id) {
                     if (areSimilar(graph, rootId, id)) {
@@ -96,6 +102,7 @@ function aggregate(graph) {
                         
                     }
                 });
+
             }
         });
     }

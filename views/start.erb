@@ -63,6 +63,11 @@
               <label class="control-label">Radius</label>
               <input type="text" class="form-control" id="radius" value="10">
             </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" id="aggregation">Aggregation
+              </label>
+            </div>
             <div class="alert alert-info"><strong>Hold the shift key</strong> while dragging a node to pin (or unpin) it</div>
             <button class="btn btn-default" id="pause-force-layout">Pause/resume layout</button>
           </form>
@@ -78,7 +83,7 @@
       </div>
     </div>
     <div class="col-lg-2">
-    <table id="node-info" class="table table-bordered"></table>
+    <div id="node-info"></div>
     <% settings.clusters.each do |name, cluster| %>
       <div class="last-updated well well-sm" id="<%= name %>" style="display:none;">
         Last updated on<br> <%= cluster.last_updated.strftime('%d.%m.%Y %H:%M:%S') %>

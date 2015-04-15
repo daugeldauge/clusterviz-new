@@ -12,6 +12,9 @@ $("#draw-form").submit(function draw() {
     var edgeType = $("#edge-type").val();
     var levels = $("#levels").val();
     var layout = $("#layout").val();
+    var aggregation = $("#aggregation")
+        .change(function() { aggregation = $(this).prop("checked"); update(); })
+        .prop("checked");
 
     var w = $("#canvas").innerWidth(),
         h = $("#canvas").innerHeight();
@@ -39,6 +42,7 @@ $("#draw-form").submit(function draw() {
 
     var svgPaths = svg.append("g");
     var svgLines = svg.append("g");
+    var svgLabels = svg.append("g");
     var svgNodes = svg.append("g");
 
     var color = d3.scale.category20();
@@ -100,8 +104,13 @@ $("#draw-form").submit(function draw() {
     function update() {
         var visibleGraph = filterFunction? smartFilter(graph, filterFunction): graph;
 
+        if (aggregation) {
+            visibleGraph = aggregate(visibleGraph);
+        }
+        
         var nodes = visibleGraph.getNodes(),
-            links = visibleGraph.getLinks();
+            links = visibleGraph.getLinks(),
+            labeledLinks = links.filter(function(d) { return d.target.number && d.target.number > 1; });
 
         var link = svgLines.selectAll("line.link")
             .data(links, function(d) { return d.source.id + "-" + d.target.id; });
@@ -111,12 +120,21 @@ $("#draw-form").submit(function draw() {
 
         link.exit().remove();
 
+        var label = svgLabels.selectAll("text.label")
+            .data(labeledLinks, function(d) { return d.source.id + "-" + d.target.id + "-n" + d.target.number;  });
+
+        label.enter().insert("text")
+            .attr("class", "label")
+            .text(function(d) { return d.target.number; });
+
+        label.exit().remove();
+
         var node = svgNodes.selectAll("g.node")
             .data(nodes, function(d) { return d.id;});
 
         var nodeEnter = node.enter().append("g")
             .attr("class", "node")
-            .on("click", showInfo)
+            .on("click", handleClick)
             .on("dblclick", dblclick);
 
         nodeEnter.append("circle")
@@ -166,12 +184,20 @@ $("#draw-form").submit(function draw() {
                         .style("stroke-linejoin", "round")
                         .style("opacity", .2)
                         .attr("d", groupPath);
+
+                group.exit().remove();
             }            
             
             node.attr("transform", function(d) { 
                 return "translate(" + 
                     d.x + "," +
                     d.y + ")";
+            });
+
+            label.attr("transform", function(d) { 
+                return "translate(" + 
+                    (d.source.x + d.target.x) / 2 + "," +
+                    (d.source.y + d.target.y) / 2 + ")";
             });
 
             link.attr("x1", function(d) { return d.source.x; })
@@ -236,18 +262,29 @@ $("#draw-form").submit(function draw() {
         $("#loading-modal").modal("hide");
     }
 
-    function showInfo(node) {
-        d3.json("/node-info/" + node.id + "?cluster=" + cluster, function(nodeInfo) {
-            var table = $("#node-info")
-                .empty()
-                .css("text-align", "left")
-                .append("<thead><tr><th>Key</th><th>Value</th></tr></thead>")
-                .append("<tr><td>id</td><td>" + node.id +"</td></tr>");
+    function handleClick(node) {
+        $("#node-info").empty();
+        if (node.aggregated) {
+            node.aggregated.forEach(function(id){
+                showInfo(id);
+            });
+        } else {
+            showInfo(node.id);
+        }
+    }
+
+    function showInfo(id) {
+        d3.json("/node-info/" + id + "?cluster=" + cluster, function(nodeInfo) {
+            var table = $("<table>")
+                .addClass("table table-bordered")
+                .appendTo("#node-info");
+            
+            table.append("<thead><tr><th>Key</th><th>Value</th></tr></thead>")
+                .append("<tr><td>id</td><td>" + id +"</td></tr>");
 
             for (var key in nodeInfo) {
                 table.append("<tr><td>" + key + "</td><td>" + toCell(nodeInfo[key]) +"</td></tr>");
             }
-            table.append("</table>");
         });
         $(".last-updated#" + cluster).show();
         $("#update-button").show();
@@ -266,11 +303,20 @@ $("#draw-form").submit(function draw() {
     }
 
     function dblclick(node) {
-        if (node.size == graph.successors(node.id).length) {
-            collapse(graph, node.id);
-            update();
+        if (node.aggregated) {            
+            if (node.size == graph.successors(node.id).length) {
+                node.aggregated.forEach(function(id){ collapse(graph, id); });
+                update();
+            } else {
+                node.aggregated.forEach(expand);
+            }
         } else {
-            expand(node.id);
+            if (node.size == graph.successors(node.id).length) {
+                collapse(graph, node.id);
+                update();
+            } else {
+                expand(node.id);
+            }
         }
     }
 
