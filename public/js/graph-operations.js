@@ -23,34 +23,47 @@ function topologicalSort(graph) {
     return currentLevel - 1;
 }
 
-function areSimilar(graph, idA, idB) {
-    var nodeA = graph.node(idA);
-    var nodeB = graph.node(idB);
-    
-    if (!nodeA || !nodeB) {
-        debugger;
-    }
+function areSimilar(graph, n1, n2) {
 
-    if (idA == idB || nodeA.type !== nodeB.type) {
+    if (n1 == n2 || !areTypesEqual(graph, n1, n2)) {
         return false;
     }
 
+    var preds1 = graph.predecessors(n1);
+    var preds2 = graph.predecessors(n2);
 
-    var succsA = graph.successors(idA);    
-    var succsB = graph.successors(idB);
-
-    if (succsA.length != succsB.length) {
+    if (!areArraysEqual(graph, preds1, preds2, areTypesEqual)) {
         return false;
     }
 
-    succsB = d3.set(succsB);
+    var succs1 = graph.successors(n1);    
+    var succs2 = graph.successors(n2);
+
+    if (!areArraysEqual(graph, succs1, succs2, areSimilar)) {
+        return false;
+    }
+
+    return true;
+}
+
+function areTypesEqual(graph, n1, n2) {
+    return graph.node(n1).type === graph.node(n2).type;
+}
+
+function areArraysEqual(graph, arr1, arr2, areEqual) {
     
-    for (var i = 0; i < succsA.length; ++i) {
+    if (arr1.length != arr2.length) {
+        return false;
+    }
+
+    arr2 = d3.set(arr2);
+    
+    for (var i = 0; i < arr1.length; ++i) {
         var isFound = false;
         
-        for (var j in succsB._) {
-            if (areSimilar(graph, succsA[i], j)) {
-                succsB.remove(j);
+        for (var j in arr2._) {
+            if (areEqual(graph, arr1[i], j)) {
+                arr2.remove(j);
                 isFound = true;
                 break;
             }
@@ -60,7 +73,7 @@ function areSimilar(graph, idA, idB) {
             return false;
         }
     }
-    
+
     return true;
 }
 
@@ -85,14 +98,16 @@ function aggregate(graph) {
                 
                 var root = graph.node(rootId);
                 
-                var value = {};
-                value.aggregated = [rootId];
-                value.number = 1;
-                value.id = root.id;
-                value.size = root.size;
-                value.type = root.type;
-                graph.setNode(rootId, value);
-                
+                if (!root.aggregated) {
+                    var value = {};
+                    value.aggregated = [rootId];
+                    value.number = 1;
+                    value.id = root.id;
+                    value.size = root.size;
+                    value.type = root.type;
+                    value.level = root.level;
+                    graph.setNode(rootId, value);
+                }
                 
                 fringe.forEach(function(id) {
                     if (areSimilar(graph, rootId, id)) {
