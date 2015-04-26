@@ -176,14 +176,16 @@ $("#draw-form").submit(function draw() {
 
                 var group = svgPaths.selectAll("path")
                     .data(groups)
-                        .attr("d", groupPath)
-                    .enter().insert("path", "circle")
-                        .style("fill", groupFill)
-                        .style("stroke", groupFill)
-                        .style("stroke-width", radius * 6)
-                        .style("stroke-linejoin", "round")
-                        .style("opacity", .2)
-                        .attr("d", groupPath);
+                    .attr("d", groupPath);
+                
+                group.enter()
+                    .insert("path", "circle")
+                    .style("fill", groupFill)
+                    .style("stroke", groupFill)
+                    .style("stroke-width", radius * 6)
+                    .style("stroke-linejoin", "round")
+                    .style("opacity", .2)
+                    .attr("d", groupPath);
 
                 group.exit().remove();
             }            
