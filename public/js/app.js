@@ -66,26 +66,20 @@ $("#draw-form").submit(function draw() {
                 .charge($("#charge").val())
                 .size([w, h]);
             
-            var isForceRunnnig = true;
+            var paused = false;
             $("#pause-force-layout").click(function(e) {
-                if (isForceRunnnig) {
-                    force.stop();
-                } else {
-                    force.resume();
-                }
-                isForceRunnnig = !isForceRunnnig;
+                force.stop();
+                paused = true;
             });
 
             var drag = force.drag()
-                .on("dragstart", function(d) { 
-                    isForceRunnnig = true;
+                .on("dragstart", function(d) {
                     d3.event.sourceEvent.stopPropagation();
                 })
                 .on("dragend", function(d) { 
                     if (d3.event.sourceEvent.shiftKey) {
                         d.fixed = !d.fixed;
                     }
-                    force.start();
                 });
                 
 
@@ -230,7 +224,6 @@ $("#draw-form").submit(function draw() {
                 /* NO BREAK ON PURPOSE*/
             case "force":
                 nodeEnter.call(drag);
-                isForceRunnnig = true;
                 
                 force.on("tick", tick)
                     .nodes(nodes)
