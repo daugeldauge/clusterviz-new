@@ -89,7 +89,11 @@
         Last updated on<br> <%= cluster.last_updated.strftime('%d.%m.%Y %H:%M:%S') %>
       </div>
     <% end %>
-    <button class="btn btn-default" id="update-button" style="display: none;">Update cached data</button>
+    <div class="form-group">
+      <button class="btn btn-default custom-btn" id="update-button">Update cached data</button>
+      <button class="btn btn-default custom-btn" id="expand-children-button" >Expand children</button>
+      <button class="btn btn-default custom-btn" id="collapse-children-button">Collapse children</button>
+    </div>
     </div>
   </div>
 </div>

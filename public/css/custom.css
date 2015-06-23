@@ -24,6 +24,11 @@ body {
   margin-bottom: 0px;
 }
 
+.custom-btn {
+  display: none;
+  margin: 5px;
+}
+
 
 line {
   stroke: #999;

@@ -4,6 +4,8 @@ $("#draw-form").submit(function draw() {
     $("svg").remove();
     $(".last-updated").hide();
     $("#update-button").hide();
+    $("#expand-children-button").hide();
+    $("#collapse-children-button").hide();
     $("#layout-opts").hide();
     $("#node-info").html("");
     $("#show-filter-modal-button").show();
@@ -265,6 +267,19 @@ $("#draw-form").submit(function draw() {
             });
         } else {
             showInfo(node.id);
+            $("#expand-children-button").unbind("click").click(function() {
+                graph.successors(node.id).forEach(function(child) {
+                    expand(child);
+                });
+            });
+            $("#collapse-children-button").unbind("click").click(function() {
+                graph.successors(node.id).forEach(function(child) {
+                    collapse(graph, child);
+                });
+                update();
+            });
+            $("#expand-children-button").show();
+            $("#collapse-children-button").show();
         }
     }
 
