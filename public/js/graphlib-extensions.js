@@ -1,3 +1,5 @@
+"use strict";
+
 (function () {
     var Graph = dagre.graphlib.Graph.prototype;
 

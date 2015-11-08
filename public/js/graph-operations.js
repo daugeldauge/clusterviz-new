@@ -1,3 +1,5 @@
+"use strict";
+
 function collapse(graph, id) {
     var successors = graph.successors(id);
     successors.forEach(function(successor) {

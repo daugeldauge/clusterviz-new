@@ -8,6 +8,7 @@ $("#draw-form").submit(function draw() {
     $("#collapse-children-button").hide();
     $("#layout-opts").hide();
     $("#node-info").html("");
+    $("#search-group").show();
     $("#show-filter-modal-button").show();
 
     var cluster = $("#cluster").val();
@@ -58,6 +59,7 @@ $("#draw-form").submit(function draw() {
 
     var visibleGraph = graph;
     var filterFunction = undefined;
+    var searchMode = false;
 
     switch(layout) {
         case "force-tree":
@@ -135,12 +137,16 @@ $("#draw-form").submit(function draw() {
 
         nodeEnter.append("circle")
             .style("fill", function(d) { return color(d.type); })
-            .style("stroke", function(d) { return d.size? "green": "red" });
-            
+            .style("stroke", function(d) { return d.size? "green": "red"; })
+        
+
         var circle = svg.selectAll("circle")
             .attr("r", function(d) {
-            return 3 * Math.log(d.size + 1) + radius;
-        });   
+                return 3 * Math.log(d.size + 1) + radius;
+            })
+            .style("opacity", function(d) {
+                return (d.highlighted || !searchMode)? 1.0: 0.2;
+            });;   
 
         nodeEnter.append("text")
             .attr("dy", ".35em")
@@ -284,18 +290,17 @@ $("#draw-form").submit(function draw() {
     }
 
     function showInfo(id) {
-        d3.json("/node-info/" + id + "?cluster=" + cluster, function(nodeInfo) {
-            var table = $("<table>")
-                .addClass("table table-bordered")
-                .appendTo("#node-info");
-            
-            table.append("<thead><tr><th>Key</th><th>Value</th></tr></thead>")
-                .append("<tr><td>id</td><td>" + id +"</td></tr>");
+        var nodeInfo = graph.node(id).attrs
+        var table = $("<table>")
+            .addClass("table table-bordered")
+            .appendTo("#node-info");
+        
+        table.append("<thead><tr><th>Key</th><th>Value</th></tr></thead>");
+        console.log("id = " + id);
 
-            for (var key in nodeInfo) {
-                table.append("<tr><td>" + key + "</td><td>" + toCell(nodeInfo[key]) +"</td></tr>");
-            }
-        });
+        for (var key in nodeInfo) {
+            table.append("<tr><td>" + key + "</td><td>" + toCell(nodeInfo[key]) +"</td></tr>");
+        }
         $(".last-updated#" + cluster).show();
         $("#update-button").show();
     }
@@ -403,6 +408,41 @@ $("#draw-form").submit(function draw() {
 
         update();
         $("#filter-modal").modal("hide");
+    });
+
+    $("#search-button").click(function() {
+        $("#search-error-msg").hide();
+
+        var hasSucceeded = false;
+        var lastError;
+
+        var query = $("#search-query").val();
+        query = query.replace(/==/g, "===")
+
+        graph.getNodes().forEach(function(node) {
+            node.highlighted = false;
+            try {
+                node.highlighted = !!evalWith(query, $.extend({}, node.attrs));
+                hasSucceeded = true;
+            } catch(e) {
+                lastError = e;
+            } 
+        });
+
+        if (hasSucceeded) {
+            searchMode = true;
+            $("#reset-search-button").show();
+            update();
+        } else {
+            $("#search-error-msg").html("<strong>" + lastError.name + "</strong>: " + lastError.message);
+            $("#search-error-msg").show();
+        } 
+    });
+
+    $("#reset-search-button").click(function() {
+        searchMode = false;
+        $("#reset-search-button").hide();
+        update();
     });
 });
 

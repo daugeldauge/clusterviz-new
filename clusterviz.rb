@@ -104,7 +104,12 @@ class Cluster
 
     nodes = nodes.to_a
     nodes.map! do |node|
-      {id: node, size: @nodes[node]['out_rels'][type].to_i, type: @nodes[node]['type']}
+      {
+        id: node,
+        size: @nodes[node]['out_rels'][type].to_i,
+        type: @nodes[node]['type'],
+        attrs: @nodes[node].reject { |k, v| k == 'out_rels' }
+      }
     end
     
     {nodes: nodes, links: links}
